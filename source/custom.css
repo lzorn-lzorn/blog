@@ -1,45 +1,74 @@
-/* 自定义样式 - 调整背景透明度 */
+/* 引入 Iosevka 字体 (英文) */
+@import url('https://cdn.jsdelivr.net/npm/@fontsource/iosevka@5.0.1/index.min.css');
 
+/* 引入 Agave 字体 (代码) */
+@import url('https://cdn.jsdelivr.net/gh/blobject/agave@master/dist/agave.min.css');
+
+/* 备用方案：使用 Google Fonts 的 Iosevka */
+/* @import url('https://fonts.googleapis.com/css2?family=Iosevka:wght@400;700&display=swap'); */
+
+/* 自定义样式 - 调整背景透明度 */
 .kira-background {
 	opacity: 0.5 !important;
 	/* 增大数值可以让背景更明显，范围 0-1 */
 }
 
-/*
- * opacity 说明：
- * 0.1 - 非常透明（几乎看不见）
- * 0.2 - 默认值（较透明）
- * 0.5 - 半透明（推荐）
- * 0.8 - 较清晰
- * 1.0 - 完全不透明
- */
-
 /* ===== 字体设置 ===== */
 
-/* 文章标题字体 */
-.kira-post h1,
-article h1 {
-	font-family: 'STKaiti', 'KaiTi', 'SimSun', serif !important;
-	font-weight: bold !important;
-	/* 可选：调整字号 */
-	/* font-size: 2.5em !important; */
+/* 全局字体：中文用微软雅黑，英文用 Iosevka */
+body,
+.kira-post,
+.kira-sidebar,
+.kira-widget {
+	font-family: 'Iosevka', 'Microsoft YaHei', '微软雅黑', 'PingFang SC', 'Hiragino Sans GB', 'WenQuanYi Micro Hei', sans-serif !important;
 }
 
-/* 文章内所有标题 */
+/* 文章标题：中文微软雅黑，英文 Iosevka */
 .kira-post h1,
 .kira-post h2,
 .kira-post h3,
 .kira-post h4,
 .kira-post h5,
-.kira-post h6 {
-	font-family: 'STKaiti', 'KaiTi', 'SimSun', serif !important;
+.kira-post h6,
+article h1,
+article h2,
+article h3,
+article h4,
+article h5,
+article h6 {
+	font-family: 'Iosevka', 'Microsoft YaHei', '微软雅黑', sans-serif !important;
 	font-weight: bold !important;
 }
 
 /* 侧边栏标题 */
 .kira-widget-title {
-	font-family: 'STKaiti', 'KaiTi', 'SimSun', serif !important;
+	font-family: 'Iosevka', 'Microsoft YaHei', '微软雅黑', sans-serif !important;
 	font-weight: bold !important;
+}
+
+/* 代码字体：使用 Agave */
+code,
+pre,
+.hljs,
+.kira-post code,
+.kira-post pre,
+figure.highlight,
+figure.highlight code,
+figure.highlight pre,
+.highlight code,
+.highlight pre {
+	font-family: 'agave', 'Consolas', 'Monaco', 'Courier New', monospace !important;
+	font-size: 0.9em;
+	line-height: 1.6;
+}
+
+/* 行内代码 */
+.kira-post p code,
+.kira-post li code {
+	font-family: 'agave', 'Consolas', 'Monaco', monospace !important;
+	background: rgba(0, 0, 0, 0.05);
+	padding: 2px 6px;
+	border-radius: 3px;
 }
 
 /*
