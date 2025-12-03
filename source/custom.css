@@ -15,7 +15,7 @@
 
 /* 自定义样式 - 调整背景透明度 */
 .kira-background {
-	opacity: 0.4 !important;
+	opacity: 0.65 !important;
 	/* 增大数值可以让背景更明显，范围 0-1 */
 }
 
