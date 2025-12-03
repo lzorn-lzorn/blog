@@ -13,3 +13,55 @@
  * 0.8 - 较清晰
  * 1.0 - 完全不透明
  */
+
+/* ===== 字体设置 ===== */
+
+/* 文章标题字体 */
+.kira-post h1,
+article h1 {
+	font-family: 'STKaiti', 'KaiTi', 'SimSun', serif !important;
+	font-weight: bold !important;
+	/* 可选：调整字号 */
+	/* font-size: 2.5em !important; */
+}
+
+/* 文章内所有标题 */
+.kira-post h1,
+.kira-post h2,
+.kira-post h3,
+.kira-post h4,
+.kira-post h5,
+.kira-post h6 {
+	font-family: 'STKaiti', 'KaiTi', 'SimSun', serif !important;
+	font-weight: bold !important;
+}
+
+/* 侧边栏标题 */
+.kira-widget-title {
+	font-family: 'STKaiti', 'KaiTi', 'SimSun', serif !important;
+	font-weight: bold !important;
+}
+
+/*
+ * 字体说明：
+ * 
+ * 中文字体推荐：
+ * - 'STKaiti', 'KaiTi' - 楷体（优雅、传统）
+ * - 'STSong', 'SimSun' - 宋体（正式、易读）
+ * - 'STHeiti', 'SimHei' - 黑体（现代、粗体）
+ * - 'STFangsong' - 仿宋（复古风格）
+ * - 'Microsoft YaHei' - 微软雅黑（现代、清晰）
+ * 
+ * 英文字体推荐：
+ * - 'Georgia', serif - 优雅衬线体
+ * - 'Times New Roman', serif - 经典衬线体
+ * - 'Arial', sans-serif - 简洁无衬线
+ * - 'Helvetica', sans-serif - 现代无衬线
+ * - 'Courier New', monospace - 等宽字体
+ * 
+ * 艺术字体推荐（需要额外引入）：
+ * - 'Noto Serif SC' - 思源宋体
+ * - 'Noto Sans SC' - 思源黑体
+ * - 'ZCOOL XiaoWei' - 站酷小薇
+ * - 'Ma Shan Zheng' - 马善政楷书
+ */
