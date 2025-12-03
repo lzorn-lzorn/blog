@@ -68,7 +68,14 @@ index_generator:
 # Category & Tag
 default_category: uncategorized
 category_map:
+  计算机图形学: computer-graphics
+  编译器: compiler
+  C++: cpp
+  游戏开发: game-development
+  引擎开发: engine-development
 tag_map:
+  教程: tutorial
+  开发: development
 
 # Metadata elements
 ## https://developer.mozilla.org/en-US/docs/Web/HTML/Element/meta
