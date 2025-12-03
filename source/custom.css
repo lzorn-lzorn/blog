@@ -15,7 +15,7 @@
 
 /* 自定义样式 - 调整背景透明度 */
 .kira-background {
-	opacity: 0.65 !important;
+	opacity: 0.55 !important;
 	/* 增大数值可以让背景更明显，范围 0-1 */
 }
 
@@ -178,6 +178,8 @@ figure.highlight pre,
 .kira-sidebar .kira-list .kira-list-item {
 	color: #FF6347 !important;
 	/* 橘红色 (Tomato) */
+	font-weight: bold !important;
+	/* 加粗字体 */
 }
 
 /* 菜单项图标颜色 */
