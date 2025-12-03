@@ -178,12 +178,12 @@ def main():
         sys.exit(1)
     
     # 完成
-    print("\n" + "<" + "="*30 + ">")
+    print("\n" + "<" + "="*60 + ">")
     print("✨ 所有操作完成！")
     print("="*60)
     print(f"博客地址: https://lzorn-lzorn.github.io")
     print(f"源代码: https://github.com/lzorn-lzorn/blog")
-    print("<" + "="*30 + ">" + "\n")
+    print("<" + "="*60 + ">" + "\n")
 
 
 if __name__ == "__main__":
