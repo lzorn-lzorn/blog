@@ -27,6 +27,10 @@ body,
 .kira-sidebar,
 .kira-widget {
 	font-family: 'Iosevka', 'Noto Sans SC', 'ZCOOL XiaoWei', 'ZCOOL QingKe HuangYou', 'Microsoft YaHei', '微软雅黑', 'PingFang SC', 'Hiragino Sans GB', sans-serif !important;
+	font-size: 17px !important;
+	/* 增大正文字体 */
+	line-height: 1.8 !important;
+	/* 增加行高，提升可读性 */
 }
 
 /* 文章标题：中文 Noto Sans SC (圆润)，英文 Iosevka */
@@ -64,17 +68,73 @@ figure.highlight pre,
 .highlight code,
 .highlight pre {
 	font-family: 'agave', 'Consolas', 'Monaco', 'Courier New', monospace !important;
-	font-size: 0.9em;
-	line-height: 1.6;
+	font-size: 15px !important;
+	/* 增大代码字体 */
+	line-height: 1.7 !important;
+	/* 增加代码行高 */
 }
 
 /* 行内代码 */
 .kira-post p code,
 .kira-post li code {
 	font-family: 'agave', 'Consolas', 'Monaco', monospace !important;
+	font-size: 15px !important;
+	/* 行内代码字体大小 */
 	background: rgba(0, 0, 0, 0.05);
 	padding: 2px 6px;
 	border-radius: 3px;
+}
+
+/* ===== 字体大小优化 ===== */
+
+/* 文章正文段落 */
+.kira-post article p,
+.kira-post article li,
+.kira-post article div {
+	font-size: 17px !important;
+	line-height: 1.8 !important;
+}
+
+/* 文章标题大小 */
+.kira-post article h1 {
+	font-size: 2.2em !important;
+}
+
+.kira-post article h2 {
+	font-size: 1.8em !important;
+}
+
+.kira-post article h3 {
+	font-size: 1.5em !important;
+}
+
+.kira-post article h4 {
+	font-size: 1.3em !important;
+}
+
+.kira-post article h5 {
+	font-size: 1.15em !important;
+}
+
+.kira-post article h6 {
+	font-size: 1.05em !important;
+}
+
+/* 引用块 */
+.kira-post article blockquote {
+	font-size: 16px !important;
+	line-height: 1.7 !important;
+}
+
+/* 表格 */
+.kira-post article table {
+	font-size: 16px !important;
+}
+
+/* 列表 */
+.kira-post article ul,
+.kira-post article ol {
+	font-size: 17px !important;
 }
 
 /*
