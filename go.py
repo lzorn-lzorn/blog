@@ -75,7 +75,7 @@ def get_commit_message():
         str: 提交信息
     """
     print("\n" + "="*60)
-    print("📝 请输入 Git 提交信息 (直接回车使用默认信息):")
+    print("> 请输入 Git 提交信息 (直接回车使用默认信息):")
     print("="*60)
     
     try:
@@ -130,7 +130,7 @@ def main():
     # 确保在正确的目录
     script_dir = os.path.dirname(os.path.abspath(__file__))
     os.chdir(script_dir)
-    print(f"\n📂 工作目录: {script_dir}")
+    print(f"\n 工作目录: {script_dir}")
     
     # 步骤 1: Hexo 清理
     if not run_command("hexo clean", "清理 Hexo 缓存"):
@@ -154,8 +154,8 @@ def main():
     
     # 步骤 4: 检查 Git 状态
     if not check_git_status():
-        print("\n✨ 所有操作完成！")
-        print(f"🌐 博客地址: https://lzorn-lzorn.github.io")
+        print("\n 所有操作完成！")
+        print(f"博客地址: https://lzorn-lzorn.github.io")
         return
     
     # 步骤 5: Git 提交
@@ -178,12 +178,12 @@ def main():
         sys.exit(1)
     
     # 完成
-    print("\n" + "🎉"*30)
+    print("\n" + "<" + "="*30 + ">")
     print("✨ 所有操作完成！")
     print("="*60)
-    print(f"🌐 博客地址: https://lzorn-lzorn.github.io")
-    print(f"📦 源代码: https://github.com/lzorn-lzorn/blog")
-    print("🎉"*30 + "\n")
+    print(f"博客地址: https://lzorn-lzorn.github.io")
+    print(f"源代码: https://github.com/lzorn-lzorn/blog")
+    print("<" + "="*30 + ">" + "\n")
 
 
 if __name__ == "__main__":
