@@ -160,3 +160,30 @@ figure.highlight pre,
  * - 'ZCOOL XiaoWei' - 站酷小薇
  * - 'Ma Shan Zheng' - 马善政楷书
  */
+
+/* ===== 侧边栏菜单颜色设置 ===== */
+
+/* 侧边栏菜单项文字颜色 - 橘红色 */
+.kira-sidebar .kira-list .kira-list-item {
+	color: #FF6347 !important;
+	/* 橘红色 (Tomato) */
+}
+
+/* 菜单项图标颜色 */
+.kira-sidebar .kira-list .kira-list-item i {
+	color: #FF6347 !important;
+}
+
+/* 菜单项悬停效果 */
+.kira-sidebar .kira-list .kira-list-item:hover {
+	color: #FF4500 !important;
+	/* 悬停时更深的橘红色 */
+	background-color: rgba(255, 99, 71, 0.1) !important;
+}
+
+/* 当前激活的菜单项 */
+.kira-sidebar .kira-list .kira-list-item.current {
+	color: #FF4500 !important;
+	background-color: rgba(255, 99, 71, 0.15) !important;
+	font-weight: bold !important;
+}
