@@ -7,6 +7,8 @@ categories:
 cover: /lib/background/bg2.jpg
 ---
 
+<!-- toc -->
+
 # Hello Hexo
 Hexo 是基于 node.js 的个人博客框架:
 ```bash
