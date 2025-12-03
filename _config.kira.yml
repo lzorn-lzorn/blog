@@ -1,7 +1,7 @@
 avatar: /1.png # 头像
 
 background: # 既是博客的背景，又是文章默认头图
-    path: /lib/background/bg4.jpg
+    path: /lib/background/bg5.jpg
     width: 1280
     height: 720
 favicon:
