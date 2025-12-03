@@ -3,7 +3,7 @@ avatar: /1.png # 头像
 background: # 既是博客的背景，又是文章默认头图
     path: /lib/background/bg1.jpg
     width: 1280
-    height: 720
+    height: 600
 favicon:
     href: /1.png # 网站图标
     type: image/png # 图标类型，可能的值有(image/png, image/vnd.microsoft.icon, image/x-icon, image/gif)
@@ -127,9 +127,8 @@ copyTip: "著作权归作者所有。\n商业转载请联系作者获得授权�
 sidebar: ''
 
 # 自定义样式
-# customStyles:
-#     - style
-#     - custom
+customStyles:
+    - custom
 
 # 友链配置
 friends:
