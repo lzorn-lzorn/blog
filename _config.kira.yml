@@ -1,9 +1,9 @@
 avatar: /1.png # 头像
 
 background: # 既是博客的背景，又是文章默认头图
-    path: /lib/background/bg1.jpg
+    path: /lib/background/bg12.jpg
     width: 1280
-    height: 600
+    height: 720
 favicon:
     href: /1.png # 网站图标
     type: image/png # 图标类型，可能的值有(image/png, image/vnd.microsoft.icon, image/x-icon, image/gif)
