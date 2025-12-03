@@ -7,11 +7,11 @@
 /* 引入圆润可爱的中文字体 - 思源黑体圆体 */
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
 
-/* 备用方案：站酷小薇（可爱圆润） */
-/* @import url('https://fonts.googleapis.com/css2?family=ZCOOL+XiaoWei&display=swap'); */
+/* 引入站酷小薇（可爱圆润） */
+@import url('https://fonts.googleapis.com/css2?family=ZCOOL+XiaoWei&display=swap');
 
-/* 备用方案：站酷庆科黄油体（更圆润） */
-/* @import url('https://fonts.googleapis.com/css2?family=ZCOOL+QingKe+HuangYou&display=swap'); */
+/* 引入站酷庆科黄油体（更圆润 - 用于标题） */
+@import url('https://fonts.googleapis.com/css2?family=ZCOOL+QingKe+HuangYou&display=swap');
 
 /* 自定义样式 - 调整背景透明度 */
 .kira-background {
@@ -33,21 +33,27 @@ body,
 	/* 增加行高，提升可读性 */
 }
 
-/* 文章标题：中文 Noto Sans SC (圆润)，英文 Iosevka */
+/* 文章标题：使用圆润字体 */
 .kira-post h1,
 .kira-post h2,
 .kira-post h3,
 .kira-post h4,
-.kira-post h5,
-.kira-post h6,
 article h1,
 article h2,
 article h3,
-article h4,
+article h4 {
+	font-family: 'ZCOOL QingKe HuangYou', 'ZCOOL XiaoWei', 'Noto Sans SC', 'Microsoft YaHei', '微软雅黑', sans-serif !important;
+	font-weight: normal !important;
+	/* 圆润字体不需要加粗 */
+}
+
+/* H5 H6 使用稍微正式一点的字体 */
+.kira-post h5,
+.kira-post h6,
 article h5,
 article h6 {
-	font-family: 'Iosevka', 'Noto Sans SC', 'ZCOOL XiaoWei', 'ZCOOL QingKe HuangYou', 'Microsoft YaHei', '微软雅黑', sans-serif !important;
-	font-weight: bold !important;
+	font-family: 'ZCOOL XiaoWei', 'Noto Sans SC', 'Microsoft YaHei', '微软雅黑', sans-serif !important;
+	font-weight: normal !important;
 }
 
 /* 侧边栏标题 */
@@ -95,21 +101,26 @@ figure.highlight pre,
 	line-height: 1.8 !important;
 }
 
-/* 文章标题大小 */
+/* 文章标题大小和样式优化 */
 .kira-post article h1 {
 	font-size: 2.2em !important;
+	letter-spacing: 1px !important;
+	/* 增加字间距，让圆润字体更美观 */
 }
 
 .kira-post article h2 {
 	font-size: 1.8em !important;
+	letter-spacing: 0.8px !important;
 }
 
 .kira-post article h3 {
 	font-size: 1.5em !important;
+	letter-spacing: 0.6px !important;
 }
 
 .kira-post article h4 {
 	font-size: 1.3em !important;
+	letter-spacing: 0.5px !important;
 }
 
 .kira-post article h5 {
