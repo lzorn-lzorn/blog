@@ -107,3 +107,9 @@ public/
 _multiconfig.yml
 ```
 同时在新的电脑上依然需要重复一遍上述的 ssh-keygen 的操作, 并在 github 上创建新的 SSH-Key, 因为这个一个电脑一个的
+
+---
+
+## 音乐播放器
+
+{% meting "魔法使いの夜～メインテーマ" "tencent" "search" %}

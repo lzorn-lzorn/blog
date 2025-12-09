@@ -130,6 +130,11 @@ sidebar: ''
 customStyles:
     - custom
 
+# 全局音乐播放器
+aplayer:
+    meting: true
+    asset_inject: false
+
 # 友链配置
 friends:
     # - avatar: <友链缩略图>

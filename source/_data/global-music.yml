@@ -1,0 +1,14 @@
+# 全局音乐播放器配置
+enable: true
+id: "魔法使いの夜～メインテーマ"
+server: tencent
+type: search
+fixed: true
+mini: false
+autoplay: false
+theme: "#FF6347"
+loop: all
+order: list
+volume: 0.7
+listFolded: false
+listMaxHeight: 200px
