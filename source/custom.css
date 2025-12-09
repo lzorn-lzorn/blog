@@ -19,6 +19,26 @@
 	/* 增大数值可以让背景更明显，范围 0-1 */
 }
 
+/* ===== 博客正文格子背景 ===== */
+
+/* 主内容区域 - 奶白色背景 + 淡米黄色网格线 */
+.kira-content .kira-main-content {
+	background-color: #faf9f6 !important;
+	/* 奶白色背景 */
+	background-image:
+		linear-gradient(to right, rgba(245, 222, 179, 0.3) 1px, transparent 1px),
+		linear-gradient(to bottom, rgba(245, 222, 179, 0.3) 1px, transparent 1px);
+	/* 淡米黄色网格线 rgba(245, 222, 179) 是wheat小麦色 */
+	background-size: 20px 20px !important;
+	/* 20px x 20px 的格子 */
+}
+
+/* 文章内容区域也添加格子背景 */
+.kira-post article {
+	background-color: transparent !important;
+	/* 让文章内容透明，显示下层的格子背景 */
+}
+
 /* 移除文章封面图片上下的黑色渐变遮罩 */
 .kira-post-cover h1::after {
 	display: none !important;
@@ -135,10 +155,12 @@ figure.highlight pre,
 
 /* ===== 字体大小优化 ===== */
 
-/* 文章正文段落 */
+/* 文章正文段落 - 使用站酷小薇（圆润但比标题更正式） */
 .kira-post article p,
 .kira-post article li,
 .kira-post article div {
+	font-family: 'ZCOOL XiaoWei', 'Noto Sans SC', 'Microsoft YaHei', sans-serif !important;
+	/* 正文使用站酷小薇，圆润且易读 */
 	font-size: 17px !important;
 	line-height: 1.8 !important;
 }
@@ -204,6 +226,12 @@ figure.highlight pre,
 	/* 代码块与正文之间的间距，与段落一致 */
 	padding: 0 !important;
 	/* 移除figure容器的内边距 */
+	background-color: #e8f4f8 !important;
+	/* 淡蓝色背景 */
+	border-radius: 8px !important;
+	/* 添加圆角 */
+	overflow: hidden !important;
+	/* 确保圆角生效 */
 }
 
 /* 代码块的 table 不要有额外间距 */
@@ -231,6 +259,8 @@ figure.highlight pre,
 	padding: 0.5em 0.5em 0.5em 0.5em !important;
 	/* 代码内容保持适当内边距 */
 	margin: 0 !important;
+	background-color: transparent !important;
+	/* 让代码区域透明，显示外层的淡蓝色 */
 }
 
 /* 行号的 pre 标签 */
@@ -238,6 +268,91 @@ figure.highlight pre,
 	padding: 0.5em 0em 0.5em 0.5em !important;
 	/* 行号区域的内边距 */
 	margin: 0 !important;
+	background-color: transparent !important;
+	/* 让行号区域透明 */
+}
+
+/* 强制覆盖 highlight.js 的背景色 */
+.kira-post article figure.highlight pre,
+.kira-post article figure.highlight code,
+.kira-post article pre.hljs,
+.kira-post article code.hljs,
+figure.highlight pre.hljs {
+	background-color: transparent !important;
+	/* 所有代码相关元素都使用透明背景，显示外层的淡蓝色 */
+}
+
+/* 针对 highlight.js 的 bash、shell 等语言 */
+.hljs,
+.hljs-bash,
+.highlight {
+	background-color: transparent !important;
+}
+
+/* ===== 代码高亮颜色 - 适配浅色背景 ===== */
+
+/* 基础代码文字颜色 - 深色 */
+.hljs,
+figure.highlight code,
+figure.highlight .hljs {
+	color: #383a42 !important;
+	/* 深灰色文字 */
+}
+
+/* 关键字 - 紫色 */
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal,
+.hljs-section,
+.hljs-link {
+	color: #a626a4 !important;
+}
+
+/* 函数名 - 蓝色 */
+.hljs-function,
+.hljs-title,
+.hljs-name {
+	color: #4078f2 !important;
+}
+
+/* 字符串 - 绿色 */
+.hljs-string,
+.hljs-title.class_,
+.hljs-type {
+	color: #50a14f !important;
+}
+
+/* 注释 - 灰色 */
+.hljs-comment,
+.hljs-quote {
+	color: #a0a1a7 !important;
+	font-style: italic;
+}
+
+/* 数字 - 橙色 */
+.hljs-number,
+.hljs-meta {
+	color: #c18401 !important;
+}
+
+/* 变量 - 红色 */
+.hljs-variable,
+.hljs-attr,
+.hljs-attribute {
+	color: #e45649 !important;
+}
+
+/* 符号 - 深灰 */
+.hljs-symbol,
+.hljs-bullet,
+.hljs-built_in {
+	color: #4078f2 !important;
+}
+
+/* Shell 命令特殊颜色 */
+.hljs-meta.hljs-prompt {
+	color: #50a14f !important;
+	font-weight: bold;
 }
 
 /* 标题与正文之间的间距 */
