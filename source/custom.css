@@ -19,6 +19,48 @@
 	/* 增大数值可以让背景更明显，范围 0-1 */
 }
 
+/* 移除文章封面图片上下的黑色渐变遮罩 */
+.kira-post-cover h1::after {
+	display: none !important;
+	/* 隐藏标题的渐变背景遮罩 */
+}
+
+/* 移除封面容器可能存在的伪元素遮罩 */
+.kira-post-cover::before,
+.kira-post-cover::after {
+	display: none !important;
+}
+
+/* 确保封面图片没有额外的遮罩层 */
+.kira-post-cover {
+	box-shadow: none !important;
+	/* 移除可能的阴影效果 */
+	padding-bottom: 35% !important;
+	/* 调整封面图片高度，默认是40%，改为25%使其更扁 */
+}
+
+/* 如果移除遮罩后标题不清晰，可以给标题添加文字阴影 */
+.kira-post-cover h1 {
+	text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7) !important;
+	/* 文字阴影让标题在任何背景下都清晰可见 */
+}
+
+/* 调整文章元信息标签（日期、字数、阅读时间）的高度 */
+.kira-post .kira-post-meta a {
+	padding: 6px 18px !important;
+	/* 减小上下内边距，从10px改为6px，使标签更扁 */
+	border-radius: 15px !important;
+	/* 相应调整圆角，从20px改为15px */
+}
+
+/* 调整首页文章之间的分割线位置 */
+.kira-content .kira-main-content .kira-posts .kira-hr {
+	margin-top: 6px !important;
+	/* 减小上边距，从12px改为6px，使分割线上移 */
+	margin-bottom: 12px !important;
+	/* 保持下边距不变 */
+}
+
 /* ===== 字体设置 ===== */
 
 /* 全局字体：中文用 Noto Sans SC (圆润)，英文用 Iosevka */
@@ -156,16 +198,45 @@ figure.highlight pre,
 	/* 段落间距 */
 }
 
-/* 代码块与上下文的间距 */
-.kira-post article pre,
-.kira-post article figure.highlight,
-.kira-post article .highlight {
-	margin: 1.2em 0 !important;
-	/* 略大于段落间距 */
+/* 代码块样式 - 恢复合理的间距和布局 */
+.kira-post article figure.highlight {
+	margin: 0.8em 0 !important;
+	/* 代码块与正文之间的间距，与段落一致 */
+	padding: 0 !important;
+	/* 移除figure容器的内边距 */
 }
 
-/* 行内代码与段落的间距保持一致 */
-.kira-post article p code {
+/* 代码块的 table 不要有额外间距 */
+.kira-post article figure.highlight table {
+	margin: 0 !important;
+	padding: 0 !important;
+}
+
+/* 代码块的 tbody, tr, td 都不要有额外间距 */
+.kira-post article figure.highlight tbody,
+.kira-post article figure.highlight tr,
+.kira-post article figure.highlight td {
+	margin: 0 !important;
+	padding: 0 !important;
+}
+
+/* 行号列 (.gutter) 的样式 */
+.kira-post article figure.highlight td.gutter {
+	padding-right: 0.8em !important;
+	/* 行号与代码之间保持间距 */
+}
+
+/* 代码列 (.code) 的 pre 标签内边距 */
+.kira-post article figure.highlight td.code pre {
+	padding: 0.5em 0.5em 0.5em 0.5em !important;
+	/* 代码内容保持适当内边距 */
+	margin: 0 !important;
+}
+
+/* 行号的 pre 标签 */
+.kira-post article figure.highlight td.gutter pre {
+	padding: 0.5em 0em 0.5em 0.5em !important;
+	/* 行号区域的内边距 */
 	margin: 0 !important;
 }
 
