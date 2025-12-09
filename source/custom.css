@@ -148,6 +148,89 @@ figure.highlight pre,
 	font-size: 17px !important;
 }
 
+/* ===== 间距优化 ===== */
+
+/* 段落间距 */
+.kira-post article p {
+	margin: 0.8em 0 !important;
+	/* 段落间距 */
+}
+
+/* 代码块与上下文的间距 */
+.kira-post article pre,
+.kira-post article figure.highlight,
+.kira-post article .highlight {
+	margin: 1.2em 0 !important;
+	/* 略大于段落间距 */
+}
+
+/* 行内代码与段落的间距保持一致 */
+.kira-post article p code {
+	margin: 0 !important;
+}
+
+/* 标题与正文之间的间距 */
+.kira-post article h1,
+.kira-post article h2,
+.kira-post article h3,
+.kira-post article h4,
+.kira-post article h5,
+.kira-post article h6 {
+	margin-top: 1.5em !important;
+	/* 标题上方间距 */
+	margin-bottom: 0.6em !important;
+	/* 标题下方间距（减小） */
+}
+
+/* 第一个标题上方不需要太多间距 */
+.kira-post article>h1:first-child,
+.kira-post article>h2:first-child,
+.kira-post article>h3:first-child {
+	margin-top: 0.5em !important;
+}
+
+/* 列表与正文的间距 */
+.kira-post article ul,
+.kira-post article ol {
+	margin: 0.8em 0 !important;
+	/* 与段落间距一致 */
+	padding-left: 1.8em !important;
+	/* 列表缩进 */
+}
+
+/* 列表项之间的间距 */
+.kira-post article li {
+	margin: 0.3em 0 !important;
+	/* 列表项间距 */
+}
+
+/* 嵌套列表的间距 */
+.kira-post article li>ul,
+.kira-post article li>ol {
+	margin: 0.3em 0 !important;
+}
+
+/* 引用块的间距 */
+.kira-post article blockquote {
+	margin: 1em 0 !important;
+	padding: 0.8em 1em !important;
+}
+
+/* 表格的间距 */
+.kira-post article table {
+	margin: 1.2em 0 !important;
+}
+
+/* 图片的间距 */
+.kira-post article img {
+	margin: 1em 0 !important;
+}
+
+/* 水平分割线的间距 */
+.kira-post article hr {
+	margin: 2em 0 !important;
+}
+
 /*
  * 字体说明：
  * 
