@@ -141,6 +141,32 @@ figure.highlight pre,
 	/* 增加代码行高 */
 }
 
+/* 代码块缩进与 tab 宽度控制（保证在不同浏览器/编辑器中一致显示） */
+/* 说明：
+   - `tab-size` 控制制表符的视觉宽度（这里设为 4 个空格宽度）
+   - `padding-left` 可以让代码块整体视觉上向右缩进
+   - 使用 `!important` 以覆盖主题中可能存在的强制样式
+*/
+pre,
+pre code,
+.kira-post article pre,
+.kira-post article pre code,
+.kira-post article figure.highlight td.code pre {
+	tab-size: 2 !important;
+	-moz-tab-size: 2 !important;
+	/* 视觉上整体向右缩进 (如需更小缩进改为 1rem / 0.5rem) */
+	padding-left: 1.25rem !important;
+	/* 保持原有的内边距设置（上下左右），避免被其他规则移除显示异常 */
+	padding-top: 0.8rem !important;
+	padding-bottom: 0.8rem !important;
+	overflow: auto !important;
+	white-space: pre !important;
+	box-sizing: border-box !important;
+}
+
+/* 可选：如果你偏向使用 tabs，但希望更紧凑的视觉效果，把 tab-size 改为 2 */
+/* pre, pre code { tab-size: 2 !important; -moz-tab-size: 2 !important; } */
+
 /* 行内代码 */
 .kira-post p code,
 .kira-post li code {

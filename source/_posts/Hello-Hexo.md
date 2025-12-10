@@ -108,8 +108,15 @@ _multiconfig.yml
 ```
 同时在新的电脑上依然需要重复一遍上述的 ssh-keygen 的操作, 并在 github 上创建新的 SSH-Key, 因为这个一个电脑一个的
 
----
+# 创建一条博客
+使用 Hexo 创建博客, 可以使用命令
+```bash
+hexo new post "blog_name"
+```
+然后 Hexo 会在 source/_posts/ 下创建一个新的 md 文件 "blog_name.md". 然后你就可以开始写博客了.
 
-<!-- ## 音乐播放器
-
-{% meting "魔法使いの夜～メインテーマ" "tencent" "search" %} -->
+在这个过程中, 如果你想给你的博客添加图片, 在 source/ 下创建 images/ 目录, 并将图片放入其中, 并在 blog 的 md 文件中引用:
+```md
+![your_image_name_in_blog](/images/your_image_name.png)
+```
+即可
