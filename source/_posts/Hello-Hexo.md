@@ -110,6 +110,6 @@ _multiconfig.yml
 
 ---
 
-## 音乐播放器
+<!-- ## 音乐播放器
 
-{% meting "魔法使いの夜～メインテーマ" "tencent" "search" %}
+{% meting "魔法使いの夜～メインテーマ" "tencent" "search" %} -->
