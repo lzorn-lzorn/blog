@@ -141,32 +141,6 @@ figure.highlight pre,
 	/* 增加代码行高 */
 }
 
-/* 代码块缩进与 tab 宽度控制（保证在不同浏览器/编辑器中一致显示） */
-/* 说明：
-   - `tab-size` 控制制表符的视觉宽度（这里设为 4 个空格宽度）
-   - `padding-left` 可以让代码块整体视觉上向右缩进
-   - 使用 `!important` 以覆盖主题中可能存在的强制样式
-*/
-pre,
-pre code,
-.kira-post article pre,
-.kira-post article pre code,
-.kira-post article figure.highlight td.code pre {
-	tab-size: 2 !important;
-	-moz-tab-size: 2 !important;
-	/* 视觉上整体向右缩进 (如需更小缩进改为 1rem / 0.5rem) */
-	padding-left: 1.25rem !important;
-	/* 保持原有的内边距设置（上下左右），避免被其他规则移除显示异常 */
-	padding-top: 0.8rem !important;
-	padding-bottom: 0.8rem !important;
-	overflow: auto !important;
-	white-space: pre !important;
-	box-sizing: border-box !important;
-}
-
-/* 可选：如果你偏向使用 tabs，但希望更紧凑的视觉效果，把 tab-size 改为 2 */
-/* pre, pre code { tab-size: 2 !important; -moz-tab-size: 2 !important; } */
-
 /* 行内代码 */
 .kira-post p code,
 .kira-post li code {
@@ -661,4 +635,120 @@ figure.highlight .hljs {
 	/* 阴影 */
 	border: 1px solid rgba(0, 0, 0, 0.08) !important;
 	border-right: none !important;
+}
+
+/* ===== 新增：只对代码列启用水平滚动（不影响行号、布局） ===== */
+
+/*
+  说明：
+  - 代码渲染通常使用 <table><td class="gutter">...</td><td class="code"><pre>...</pre></td></table>
+  - 我们把水平滚动限制到 .code 单元中的 pre 元素，这样行号（.gutter）保持固定，
+    也不会因为滚动而改变整体表格布局或宽度。
+  - 使用 max-width:100% 防止 pre 超出容器宽度并触发表格扩展。
+  - white-space: pre 保持原始换行/空格（不换行），必要时显示水平滚动条。
+  - -webkit-overflow-scrolling: touch 使移动端滚动更自然。
+*/
+
+.kira-post article figure.highlight td.code,
+figure.highlight td.code,
+article figure.highlight td.code {
+	/* 确保代码单元为定位容器，方便内部 pre 控制滚动 */
+	position: relative;
+	overflow: hidden;
+	/* hide any overflow except the scrollable pre we control */
+}
+
+.kira-post article figure.highlight td.code pre,
+figure.highlight td.code pre,
+article figure.highlight td.code pre,
+.kira-post article figure.highlight td.code .code pre {
+	/* 使 pre 在其父单元中可横向滚动（只影响代码列） */
+	display: block;
+	max-width: 100%;
+	box-sizing: border-box;
+	white-space: pre;
+	/* 保持不换行，必要时水平滚动 */
+	overflow-x: auto;
+	overflow-y: hidden;
+	-webkit-overflow-scrolling: touch;
+	/* 平滑滚动（iOS） */
+	/* 保持原有内边距与视觉样式 */
+	padding: 0.1em 1em 0.1em 0.05em !important;
+	margin: 0 !important;
+	background-color: transparent !important;
+	line-height: 1.6 !important;
+}
+
+/* 避免 pre 内容撑大表格：当内容超宽时，pre 内部滚动，而表格列宽仍然以容器为准 */
+.kira-post article figure.highlight table {
+	table-layout: fixed;
+	/* 表格列宽由单元格决定（避免被内部长行撑开） */
+	width: 100%;
+}
+
+/* 如果你不希望 table-layout: fixed 影响所有代码块，可以使用只针对含行号的表格： */
+.kira-post article figure.highlight table.has-gutter {
+	table-layout: fixed;
+	width: 100%;
+}
+
+/* 为了美观：确保代码行在超出时不会换行并显示滚动条指示（浅色主题） */
+.kira-post article figure.highlight td.code pre::-webkit-scrollbar {
+	height: 8px;
+}
+
+.kira-post article figure.highlight td.code pre::-webkit-scrollbar-track {
+	background: rgba(255, 255, 255, 0.12);
+	border-radius: 4px;
+}
+
+.kira-post article figure.highlight td.code pre::-webkit-scrollbar-thumb {
+	background: rgba(255, 99, 71, 0.22);
+	border-radius: 4px;
+}
+
+.kira-post article figure.highlight td.code pre::-webkit-scrollbar-thumb:hover {
+	background: rgba(255, 99, 71, 0.38);
+}
+
+/* 非 webkit 浏览器的滚动条提示（sensible defaults） */
+.kira-post article figure.highlight td.code pre {
+	scrollbar-width: thin;
+	scrollbar-color: rgba(255, 99, 71, 0.22) rgba(255, 255, 255, 0.12);
+}
+
+/* 保证行号列不随滚动条宽度而错位（通过 box-sizing 与固定填充） */
+.kira-post article figure.highlight td.gutter,
+figure.highlight td.gutter,
+article figure.highlight td.gutter {
+	box-sizing: border-box;
+}
+
+/* 兼容性：对于使用 <pre><code> 而不是表格行号布局的情况，也启用水平滚动 */
+.kira-post article figure.highlight pre,
+.kira-post article figure.highlight code,
+.kira-post article pre.hljs,
+.kira-post article code.hljs,
+figure.highlight pre.hljs {
+	white-space: pre;
+	overflow-x: auto;
+	overflow-y: hidden;
+	-webkit-overflow-scrolling: touch;
+	max-width: 100%;
+	box-sizing: border-box;
+}
+
+/* 小屏幕下：允许在容器内自然滚动并保留可读性 */
+@media (max-width: 700px) {
+
+	.kira-post article figure.highlight td.code pre,
+	figure.highlight td.code pre,
+	article figure.highlight td.code pre,
+	.kira-post article figure.highlight pre,
+	.kira-post article pre.hljs {
+		/* 更宽松的左右内边距，便于触控滚动 */
+		padding-left: 0.8em !important;
+		padding-right: 0.8em !important;
+		font-size: 14px !important;
+	}
 }
