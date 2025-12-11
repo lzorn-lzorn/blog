@@ -74,140 +74,343 @@ Slate 本质上是一个UI框架, 所以你可以基于 Slate 扩展蓝图工具
 > Editor Preference > General > Miscellaneous > Developer Tools > Display UI Extension Pointers > true.
 > 开启之后, 通过这些绿色的字就说明UI可以扩展的位置.
 
-创建菜单项: 将表项注册至 `UToolMenus` 中
+> UI扩展点
+> 编辑器偏好设置 > 其他 > 开发者工具 > 显示UI扩展点 > true
+> Editor Preference > General > Miscellaneous > Developer Tools > Display UI Extension Pointers > true.
+> 开启之后, 通过这些绿色的字就说明UI可以扩展的位置.
+
+创建菜单项: 这里会涉及以下三个内容:
+`MyEditorTools`: 用户自定义的插件
+`FMyUICommands`: 用户自定义的UI Commands
+`MyEditorToolsStyle`: 用户自定义插件的风格化文件
 ```Cpp
+// 为了省地方就干脆写一起了
+class MyEditorToolsStyle {
+public:
+    static void Initialize(){
+        if(!Instance){
+            Instance = Create();
+            FSlateStyleRegistry::RegisterSlateStyle(*Instance);
+        }
+    }
+    static void Shutdown(){
+        FSlateStyleRegistry::UnRegisterSlateStyle(*Instance);
+        ensure(Instance.IsUnique());
+        Instance.Reset();
+    }
+    static void ReloadTextures();
+    static const ISlateStyles& Get();
+    static FName GetStyleSetName(){
+        static FName StyleName(TEXT("MyEditorToolsStyle"));
+        return StyleName;
+    }
+private:
+    static TSharedRef<class FSlateStyleSet> Create();
+    static TSharePtr<class FSlateStyleSet> Instance;
+};
+TSharedPtr< FSlateStyleSet > MyEditorToolsStyle::Instance = NULL;
+#define IMAGE_BRUSH( RelativePath, ... ) \
+    FSlateImageBrush( \
+        Style->RootToContentDir( RelativePath, TEXT(".png") ), \
+        __VA_ARGS__\
+    )
+
+#define BOX_BRUSH( RelativePath, ... ) FSlateBoxBrush( Style->RootToContentDir( RelativePath, TEXT(".png") ), __VA_ARGS__ )
+
+#define BORDER_BRUSH( RelativePath, ... ) FSlateBorderBrush( Style->RootToContentDir( RelativePath, TEXT(".png") ), __VA_ARGS__ )
+
+#define TTF_FONT( RelativePath, ... ) FSlateFontInfo( Style->RootToContentDir( RelativePath, TEXT(".ttf") ), __VA_ARGS__ )
+
+#define OTF_FONT( RelativePath, ... ) FSlateFontInfo( Style->RootToContentDir( RelativePath, TEXT(".otf") ), __VA_ARGS__ )
+
+const FVector2D Icon16x16(16.0f, 16.0f);
+const FVector2D Icon20x20(20.0f, 20.0f);
+const FVector2D Icon40x40(40.0f, 40.0f);
+
+TSharedRef<FSlateStyleSet> MyEditorToolsStyle::Create(){
+	TSharedRef FSlateStyleSet> Style = MakeShareable(
+	    new FSlateStyleSet("MyEditorToolsStyle"));
+	Style->SetContentRoot(
+	    IPluginManager::Get()
+	        .FindPlugin("MyEditorToolsStyle")
+	        ->GetBaseDir() / TEXT("Resources")
+	);
+	Style->Set(
+	    "MyEditorToolsStyle.PluginAction", 
+	    new IMAGE_BRUSH(TEXT("ButtonIcon_40x"), 
+	    Icon40x40)
+	);
+	return Style;
+}
+
+#undef IMAGE_BRUSH
+#undef BOX_BRUSH
+#undef BORDER_BRUSH
+#undef TTF_FONT
+#undef OTF_FONT
+void MyEditorToolsStyle::ReloadTextures(){
+	if (FSlateApplication::IsInitialized()){
+		FSlateApplication::Get().GetRenderer()->ReloadTextureResources();
+	}
+}
+const ISlateStyle& MyEditorToolsStyle::Get(){
+	return *Instance;
+}
+
 class FMyUICommands : public TCommands<FMyUICommands>{
 public:
-	FMyUICommands()
-		: TCommands<FMyUICommands>(
-		/* 
-			InContextName: 上下文的唯一名称 (FName), 
-			在 FInputBindingManager 中索引/查找此命令集合 
-		*/
-			TEXT("FMyUICommands"),
-		/*
-			InContextDesc: 上下文的本地化描述 (FText)
-		*/
-			NSLOCTEXT(
-				"Contexts",  // 是本地化命名空间
-				"MyEditorTools",  // 键
-				"MyEditorTools Plugin" // 默认文本
-			),
-		/*
-			InContextParent:上级上下文 (FName), 用于建立命令上下文层级/继承关系
-			如果不需要父上下文, 用 NAME_None
-		*/
-			NAME_None,
-		/*
-			InStyleSetName: 指定样式集
-			用于在生成工具栏按钮/菜单项时查找图标(Slate 样式表)
-			通常通过自定义模块 style 的 GetStyleSetName() 提供
-		*/
-			MyEditorToolsStyle::GetStyleSetName()
-		)
-	{
-	}
-	
-	/*
-		Register() 会把命令上下文注册到全局的 FInputBindingManager
-		以便于快捷键管理/重绑定/菜单自动显示快捷键等
-	*/
-	virtual void RegisterCommands() override {
-		UI_COMMAND(
-		/*
-			MemberVariableName: 要赋值的成员变量名(这里是 PluginAction)
-			type: TSharedPtr<FUICommandInfo>
-		*/
-			PluginAction, 
-		/*
-			FriendlyName: 命令在 UI 中显示的短名称
-			type: FText 或 const char*，宏会包成 TEXT(...) / LOCTEXT
-		*/
-			"MyEditorTools", 
-		/*
-			InDescription: 更详细的描述或 tooltip(显示在鼠标悬停等场景)
-		*/
-			"Execute MyEditorTools Action",
-		/*
-			CommandType: EUserInterfaceActionType，指示命令类型:
-				Button, ToggleButton, RadioButton, Check
-			这影响菜单项/工具栏如何呈现以及是否支持切换/选中状态
-		*/
-			EUserInterfaceActionType::Button,
-		/*
-			InDefaultChord (或 FInputGesture/FInputChord): 命令的默认快捷键
-			如果为空或FInputGesture()则无默认快捷键
-		*/
-			FInputGesture()
-		)
-	}
+    FMyUICommands()
+        : TCommands<FMyUICommands>(
+        /* 
+            InContextName: 上下文的唯一名称 (FName), 
+            在 FInputBindingManager 中索引/查找此命令集合 
+        */
+            TEXT("FMyUICommands"),
+        /*
+            InContextDesc: 上下文的本地化描述 (FText)
+        */
+            NSLOCTEXT(
+                "Contexts",  // 是本地化命名空间
+                "MyEditorTools",  // 键
+                "MyEditorTools Plugin" // 默认文本
+            ),
+        /*
+            InContextParent:上级上下文 (FName), 用于建立命令上下文层级/继承关系
+            如果不需要父上下文, 用 NAME_None
+        */
+            NAME_None,
+        /*
+            InStyleSetName: 指定样式集
+            用于在生成工具栏按钮/菜单项时查找图标(Slate 样式表)
+            通常通过自定义模块 style 的 GetStyleSetName() 提供
+        */
+            MyEditorToolsStyle::GetStyleSetName()
+        )
+    {
+    }
+    
+    /*
+        Register() 会把命令上下文注册到全局的 FInputBindingManager
+        以便于快捷键管理/重绑定/菜单自动显示快捷键等
+    */
+    virtual void RegisterCommands() override {
+        UI_COMMAND(
+        /*
+            MemberVariableName: 要赋值的成员变量名(这里是 PluginAction)
+            type: TSharedPtr<FUICommandInfo>
+        */
+            PluginAction, 
+        /*
+            FriendlyName: 命令在 UI 中显示的短名称
+            type: FText 或 const char*，宏会包成 TEXT(...) / LOCTEXT
+        */
+            "MyEditorTools", 
+        /*
+            InDescription: 更详细的描述或 tooltip(显示在鼠标悬停等场景)
+        */
+            "Execute MyEditorTools Action",
+        /*
+            CommandType: EUserInterfaceActionType，指示命令类型:
+                Button, ToggleButton, RadioButton, Check
+            这影响菜单项/工具栏如何呈现以及是否支持切换/选中状态
+        */
+            EUserInterfaceActionType::Button,
+        /*
+            InDefaultChord (或 FInputGesture/FInputChord): 命令的默认快捷键
+            如果为空或FInputGesture()则无默认快捷键
+            FInputChord 表示按键组合
+        */
+            FInputGesture()
+        )
+    }
 public:
-	TSharedPtr<FUICommandInfo> PluginAction;
+    TSharedPtr<FUICommandInfo> PluginAction;
 }
+
+// 实际应该写 .cpp 中
+static const FName MyEditorToolbarButtonTabName("MyEditorToolbarButton");
+#define LOCTEXT_NAMESPACE "FMyEditorToolbarButtonModule"
+class FMyEditorToolsModule : public IModuleInterface {
+public:
+    virtual void StartupModule() override{
+        MyEditorToolsStyle::Initialize();
+        MyEditorToolsStyle::ReloadTextures();
+        
+        FMyUICommands::Register();
+    
+        PluginCommands = MakeShareble(new FMyUICommands);
+        PluginCommands->MapAction(
+            FMyUICommands::Get().PluginAction,
+            // 绑定回调
+            FExcuteAction::CreateRaw(this, &FMyEditorToolsModule::PluginButtonClicked); 
+            // 是否可以执行回调
+            FCanExecuteAction()
+            // 可选 FIsActionChecked 等回调用于 Toggle/Check 类型
+        );
+        
+        UToolsMenus::RegisterStartupCallback(
+            FSimpleMulticastDelegate::FDelegate::CreateRaw(
+                this, 
+                &FMyEditorToolsModule::RegisterMenus
+            )
+        );
+    }
+    virtual void ShutdownModule() override{
+        UToolMenus::UnRegisterStartupCallback(this);
+        UToolMenus::UnregisterOwner(this);
+        FMyEditorToolsModule::Shutdown();
+        FMyUICommands::Unregister();
+    }
+    void PluginButtonClicked(){
+        // 点击按钮之后执行的逻辑
+    }
+private:
+    void Register(){
+        FToolMenuOwnerScoped OwnerScoped(this);
+        {
+            UToolMenu* menu = UToolMenus::Get()->ExtendMenu("MainFrame.MainMenu.Window");
+            FToolMenuSection& section = Menu->FindOrAddSection("WindowLayout");
+            section.AddMenuEntryWithCommandList(
+                FMyUICommands:Get().PluginAction,
+                PluginCommands
+            );
+        }
+        {
+            UToolMenu* menu = UToolMenus::Get()->ExtendMenu("AssetEditor.BlueprintEditor.MainMenu.Window");
+            FToolMenuSection& section = Menu->FindOrAddSection("WindowLayout");
+            section.AddMenuEntryWithCommandList(
+                FMyUICommands:Get().PluginAction,
+                PluginCommands
+            );
+        }
+        {
+            FBlueprintEditorModule& BOEditorModule = FModuleManager::LoadModuleChecked<FBlueprintEditorModule>("Kismet");
+            BlueprintEditorModule
+                .OnRegisterTabsForEditor()
+                .AddRaw(this, &FMyEditorToolsModule::OnBPToolBarRegister);
+        }
+        {
+            UToolMenu* ToolbarMenu = UToolMenus::Get()->ExtendMenu("LevelEditor.LevelEditorToolBar");
+            FToolMenuSection& Section = ToolbarMenu->FindOrAddSection("Settings");
+            FToolMenuEntry& Entry = Section.AddEntry(FToolMenuEntry::InitToolBarButton(FMyUICommands::Get().PluginAction));
+            Entry.SetCommandList(PluginCommands);
+            FToolMenuEntry& Entry1 = Section.AddEntry(
+                FToolMenuEntry::InitToolBarButton(FMyUICommands::Get().PluginAction),
+                TAttribute<FText>(),
+                TAttribute<FText>(),
+                TAttribute<FSlateIcon>(),
+                NAME_None,
+                "LastBuuuuutton"
+            );
+            Entry1.SetCommandList(PluginCommands);
+            Entry1.InsertPosition.Position = EToolMenuInsertType::First;
+        }
+        {
+            UToolMenu* ToolbarMenu = UToolMenus::Get()->ExtendMenu("LevelEditor.LevelEditorToolBar");
+            FToolMenuSection& Section = ToolbarMenu->FindOrAddSection("File");
+            FToolMenuEntry& Entry = Section.AddEntry(FToolMenuEntry::InitToolsBarButton(FMyUICommands::Get().PluginAction));
+            Entry.SetCommandList(PluginCommands);
+            Entry.InsertPosition.Position = EToolMenuInsertType::First;
+        }
+        {
+            UToolMenu* ToolbarMenu = UToolMenus::Get();
+            UToolMenu* MyMenu = ToolbarMenu->RegisterMenu("LevelEditor.MainMenu.MySubMenu");
+            FToolMenuSection& Section = MyMenu->FindOrAddSection("MySection");
+            Section.AddMenuEntryWitheCommandList(FMyUICommands::Get().PluginAction, PluginCommands);
+            UToolMenu* MenuBar = UToolMenus::Get()->ExtendMenu("LevelEditor.MainMenu");
+            MenuBar->AddSubMenu(
+                "MainMenu",
+                "MySection",
+                "MySubMenu",
+                LOCTEXT("MyMenu", "My")
+            );
+        }
+        IAnimationBlueprintEditorModule& AnimationBlueprintEditorModule 
+            = FModuleManager::LoadModuleChecked<IAnimationBlueprintEditorModule>("AnimationBlueprintEditor");
+    	{
+    		TSharedPtr<FExtender> MenuExtender = MakeShareable(new FExtender);
+    		MenuExtender->AddMenuExtension(
+    		    "HelpApplication", 
+    		    EExtensionHook::After, 
+    		    PluginCommands, 
+    		    FMenuExtensionDelegate::CreateRaw(this, &FMyEditorToolsModule::AddMenuExtension)
+    		);
+    		AnimationBlueprintEditorModule.GetMenuExtensibilityManager()->AddExtender(MenuExtender);
+    	}
+    	{
+    		TSharedPtr<FExtender> MenuExtender = MakeShareable(new FExtender);
+    		MenuExtender->AddMenuBarExtension(
+    		    "Help", 
+    		    EExtensionHook::After, 
+    		    PluginCommands, 
+    		    FMenuBarExtensionDelegate::CreateRaw(this, &FMyEditorToolsModule::AddMenuBarExtension)
+    		);
+    		AnimationBlueprintEditorModule.GetMenuExtensibilityManager()->AddExtender(MenuExtender);
+    	}
+
+    	{
+    		TSharedPtr<FExtender> MenuExtender = MakeShareable(new FExtender);
+    		MenuExtender->AddToolBarExtension(
+    		    "Settings", 
+    		    EExtensionHook::After, 
+    		    PluginCommands, 
+    		    FToolBarExtensionDelegate::CreateRaw(this, &FMyEditorToolsModule::AddToolBarExtension)
+    		);
+    		AnimationBlueprintEditorModule.GetToolBarExtensibilityManager()->AddExtender(MenuExtender);
+    	}
+    	//http://wlosok.cz/editor-plugins-in-ue4-3-toolbar-button/
+    	/*
+        	If you try to do
+        	FBlueprintEditorModule& BlueprintEditorModule 
+        	    = FModuleManager::LoadModuleChecked<FBlueprintEditorModule>(“Kismet”),
+        	the code will compile, but the engine will crash when starting up.
+        	One solution I found was to change LoadingPhase in .uplugin file to PostEngineInit.
+    	*/
+
+    	{
+    		FBlueprintEditorModule& BlueprintEditorModule = FModuleManager::LoadModuleChecked<FBlueprintEditorModule>(TEXT("Kismet"));
+    		TSharedPtr<FExtender> MenuExtender = MakeShareable(new FExtender);
+    		MenuExtender->AddMenuExtension(
+    		    "HelpApplication", 
+    		    EExtensionHook::After, 
+    		    PluginCommands, 
+    		    FMenuExtensionDelegate::CreateRaw(this, &FMyEditorToolsModule::AddMenuExtension)
+    		);
+    		BlueprintEditorModule.GetMenuExtensibilityManager()->AddExtender(MenuExtender);
+    	}
+    }
+    void AddMenuExtension(FMenuBuilder& builder){
+        Builder.BeginSection(TEXT("MyButton"));
+	    Builder.AddMenuEntry(FMyUICommands::Get().PluginAction);
+	    Builder.EndSection();
+    }
+    void AddMenuBarExtension(FMenuBuilder& builder){
+        Builder.AddMenuEntry(FMyUICommands::Get().PluginAction);
+    }
+    void AddToolBarExtension(FMenuBuilder& builder){
+        Builder.BeginSection(TEXT("MyButton"));
+    	Builder.AddToolBarButton(FMyUICommands::Get().PluginAction);
+    	Builder.EndSection();
+    }
+    void OnBPToolBarRegister(
+        class FWorkflowAllowedTabSet& tabset, 
+        FName name, 
+        TSharedPtr<class FBlueprintEditor> BP
+    ){
+        TSharedPtr<FExtender> ToolBarExtender = MakeShareable(new FExtender);
+    	ToolBarExtender->AddToolBarExtension(
+    	    "Settings", 
+    	    EExtensionHook::After, 
+    	    PluginCommands, 
+    	    FToolBarExtensionDelegate::CreateRaw(this, &FMyEditorToolsModule::AddToolBarExtension)
+    	);
+    	BP->AddToolbarExtender(ToolBarExtender);
+    }
+private:
+    TSharedPtr<class FUICommandList> PluginCommands;
+}
+// 在 .cpp 最后注销
+#undef LOCTEXT_NAMESPACE
+IMPLEMENT_MODULE(FMyEditorToolsModule, MyEditorTool) // 模块名
 ```
 
-这里涉及到三个内容:
-MyEditorTools: 用户自定义的插件
-FMyUICommands: 用户自定义的UI Commands
-MyEditorToolsStyle: 用户自定义插件的风格化文件
-他们之间的关系是:
-1) 在模块的 StartupModule() 中注册命令集合（只需注册一次）：
-   void FMyModule::StartupModule()
-   {
-	   FMyUICommands::Register(); // 创建并注册上下文到 FInputBindingManager
-	   // 可选：在此处注册样式（图标等）
-   }
-
-2) 在模块或 UI 类中创建命令列表并把命令映射到具体执行回调：
-   // 通常在 Widget/Tool 的构造或初始化中：
-   TSharedRef<FUICommandList> CommandList = MakeShared<FUICommandList>();
-
-   // MapAction 将 FUICommandInfo（元数据）与执行逻辑、是否可执行、是否选中等委托绑定
-   CommandList->MapAction(
-	   FMyUICommands::Get().PluginAction,
-	   FExecuteAction::CreateSP(this, &FMyTool::ExecutePluginAction),      // 执行回调
-	   FCanExecuteAction::CreateSP(this, &FMyTool::CanExecutePluginAction) // 可选：是否允许执行
-	   // 可选 FIsActionChecked 等回调用于 Toggle/Check 类型
-   );
-
-3) 在菜单/工具栏生成时使用命令信息（它会自动显示文本和快捷键）：
-   FMenuBuilder MenuBuilder(true, CommandList);
-   MenuBuilder.AddMenuEntry( FMyUICommands::Get().PluginAction );
-
-   或者在工具栏里：
-   FToolBarBuilder ToolBarBuilder(CommandList, FMultiBoxCustomization());
-   ToolBarBuilder.AddToolBarButton(FMyUICommands::Get().PluginAction);
-
-   注意：MenuBuilder/ToolBarBuilder 会使用当前绑定（CommandList）来决定是否绘制启用/禁用/选中状态，
-		 并显示当前的快捷键绑定（不是仅显示默认快捷键，而是显示用户可能重绑定后的实际快捷键）。
-
-4) 访问命令集合：
-   // 确保已注册后可安全调用：
-   const FMyUICommands& Commands = FMyUICommands::Get();
-
-   // 获取命令的友好名（FText）：
-   FText Friendly = Commands.PluginAction->GetLabel();
-
-5) 注销（通常在模块的 ShutdownModule() 里）：
-   void FMyModule::ShutdownModule()
-   {
-	   FMyUICommands::Unregister();
-	   // 注：Unregister 会从 FInputBindingManager 移除上下文并广播 CommandsChanged。
-   }
-
-6) 关于本地化（LOCTEXT/NSLOCTEXT）：
-   - UI_COMMAND 宏期望 LOCTEXT_NAMESPACE 在当前翻译单元已定义（宏内部使用 LOCTEXT 来创建本地化文本）。
-   - 上文示例把上下文描述用 NSLOCTEXT 明确写在构造器中，但 UI_COMMAND 仍将使用 LOCTEXT_NAMESPACE。
-   - 典型做法是在实现 RegisterCommands 的 .cpp 文件顶部写：
-	   #define LOCTEXT_NAMESPACE "FMyUICommands"
-	 并在文件末尾写：
-	   #undef LOCTEXT_NAMESPACE
-
-7) 关于快捷键（FInputGesture / FInputChord）：
-   - FInputChord 表示按键组合（例如 Ctrl+Shift+S）。FInputGesture 是较高层的通用类型（在不同引擎版本中细节可能不同）。
-   - 在 UI_COMMAND 中传入空构造表示没有默认绑定；用户或系统可以在运行时通过 FInputBindingManager 修改绑定。
-
-总结：
-- UI Command (FUICommandInfo) = 命令的元数据（显示名/描述/默认快捷键/类型/样式信息）。
-- TCommands<T> 用于在模块中集中声明和注册这些命令集合（并以上下文名称在全局绑定管理器中注册以便复用）。
-- 命令本身不包含执行逻辑；要把命令变为可执行，需要用 FUICommandList::MapAction 将执行委托绑定到命令上，然后将 CommandList 提供给菜单/工具栏构建器或输入处理逻辑。
