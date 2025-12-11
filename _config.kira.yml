@@ -110,7 +110,7 @@ gitalk:
 # 你们不要在这里填我的 giscus 配置项，不然你们博客下的评论会全部跑到我的仓库下面……
 # https://giscus.app/zh-CN 可以在这个网站上手动选择配置填到下方对应位置
 giscus:
-    active: true # 是否启用 giscus
+    active: false # 是否启用 giscus；设置为 false 可避免 "giscus is not installed" 错误
     repo: -your github username-/-your giscus repo- # 存放评论的 discus 所在的 repo
     repoID: -your giscus repo ID- # GitHub repo ID
     category: Announcements # 选择新 discussions 所在的分类
