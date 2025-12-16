@@ -8,6 +8,9 @@ categories:
   - UE
 cover: /lib/background/bg3.jpg
 ---
+
+<!-- toc -->
+
 # 使用SWidget的宏
 在 `DeclarativeSyntaxSupport.h` 中定义了大量 Slate 系统中声明 `SWidget` 需要使用的宏, 在我们定义自己的 Slate Widget 的时候需要使用到这些宏才能和 Slate 中其他组件相互配合, 同时也减少重复代码的方式.
 ## SLATE_BEGIN_ARGS() And SLATE_END_ARGS()
