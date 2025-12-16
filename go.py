@@ -132,11 +132,11 @@ def main():
     os.chdir(script_dir)
     print(f"\n 工作目录: {script_dir}")
     
-    # 步骤 1: Hexo 清理
-    if not run_command("hexo clean", "清理 Hexo 缓存"):
-        print("\n⚠️  清理失败，是否继续？(y/n): ", end='')
-        if input().lower() != 'y':
-            sys.exit(1)
+    # 步骤 1: Hexo 清理 不清理(太慢)
+    # if not run_command("hexo clean", "清理 Hexo 缓存"):
+    #     print("\n⚠️  清理失败，是否继续？(y/n): ", end='')
+    #     if input().lower() != 'y':
+    #         sys.exit(1)
     
     # 步骤 2: Hexo 生成
     if not run_command("hexo generate", "生成静态文件"):
