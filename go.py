@@ -24,7 +24,7 @@ def run_command(command, description):
         bool: 命令是否执行成功
     """
     print(f"\n{'='*60}")
-    print(f"🚀 {description}")
+    print(f"{description}")
     print(f"{'='*60}")
     
     try:
@@ -56,14 +56,14 @@ def run_command(command, description):
         process.wait()
         
         if process.returncode == 0:
-            print(f"✅ {description} - 成功")
+            print(f"{description} - 成功")
             return True
         else:
-            print(f"❌ {description} - 失败 (退出码: {process.returncode})")
+            print(f"{description} - 失败 (退出码: {process.returncode})")
             return False
             
     except Exception as e:
-        print(f"❌ 执行出错: {str(e)}")
+        print(f"执行出错: {str(e)}")
         return False
 
 

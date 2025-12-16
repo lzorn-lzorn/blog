@@ -120,3 +120,13 @@ hexo new post "blog_name"
 ![your_image_name_in_blog](/images/your_image_name.png)
 ```
 即可
+
+如果你想给你的博客添加目录: 在文章的最开始添加 `<!-- toc -->` 即可自动生成目录.
+
+为了方便, 你可以写一个脚本来帮你进行 
+```Bash
+hexo g; hexo d;
+git commit -a -m "";
+git push;
+```
+等操作(对于python可以使用`subprocess.Popen` 来执行命令行命令, 从而实现一个跨平台的自动部署脚本)
