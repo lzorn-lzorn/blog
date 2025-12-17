@@ -239,7 +239,8 @@ WidgetArgsType& OnValueChanged_UObject(UserClass* InUserObject,
 }
 ```
 对于上述例子中 `SLATE_EVENT(FOnMyWidgetValueChangedNative, OnValueChanged)` 本质上就是定义所有可以定义 `FOnMyWidgetValueChangedNative` 的方式, 其中 `DECLARE_DELEGATE_OneParam(FOnExSliderValueChangedNative, float);` 是定义的一个委托 `TDelegate<void(float)>`. 
-
+## SLATE_NAMED_SLOT 和 SLATE_DEFAULT_SLOT
+在 FArgument 中声明一个命名插槽, 该插槽只接受一个子控件, 允许 `SNew(...).SlotName()[ ... ]` 的语法中把一个子节点提供给该命名插槽
 
 # Slate 框架中声明式语法
 Slate 中每一个控件的操作在 UMG 的界面都可以找到对应, 所以对于常见的 UI 设计, 可以使用 UMG 设计, 然后再将其翻译为 Slate 的声明式语法. 对于 Slate 的声明式语法例如:
@@ -287,7 +288,531 @@ ChildSlot
 ];
 ```
 对应如下图
-![Slate和UMG操作的对应.png](./images/Slate和UMG操作的对应.png)
+![[Slate和UMG操作的对应.png]]
+
+## 一个完整的 FArgument
+```Cpp
+// 完整展开示例：不使用任何 SLATE_* 宏，手工实现与宏等价的 FArguments。
+// 说明：这是为一个示例 Widget 名为 SMyWidget 展开的 FArguments 实现。
+//       代码尽量逐项对应宏中会生成的成员与方法，并在注释中指明“对应哪个宏”。
+// 注意：此文件演示 FArguments 的结构与方法，不包含 SMyWidget 的其它实现。
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "Misc/Attribute.h"
+#include "Layout/Visibility.h"
+#include "Layout/Clipping.h"
+#include "Widgets/WidgetPixelSnapping.h"
+#include "Layout/FlowDirection.h"
+#include "Rendering/SlateRenderTransform.h"
+#include "GenericPlatform/ICursor.h"
+#include "Types/ISlateMetaData.h"
+#include "Widgets/SNullWidget.h"
+#include "Widgets/Accessibility/SlateWidgetAccessibleTypes.h"
+#include "Templates/Identity.h"
+#include "Delegates/Delegate.h"
+#include "Templates/SharedPointer.h"
+#include "Templates/Function.h"
+
+// 前向声明（示例用）
+class IToolTip;
+class SUserWidget;
+class SWidget;
+
+/**
+ * 一个始终有效的 widget 引用（等价于文件中 TAlwaysValidWidget）。
+ * 它用于命名槽默认值为 SNullWidget::NullWidget，避免空检查。
+ */
+struct TAlwaysValidWidget
+{
+    TAlwaysValidWidget()
+        : Widget(SNullWidget::NullWidget)
+    {
+    }
+
+    TSharedRef<SWidget> Widget;
+};
+
+
+/**
+ * NamedSlotProperty 模板，用于实现 .SlotName()[ child ] 的语法。
+ * 它与文件中 NamedSlotProperty 的作用一致。
+ */
+template<class DeclarationType>
+struct NamedSlotProperty
+{
+    NamedSlotProperty(DeclarationType& InOwnerDeclaration, TAlwaysValidWidget& InSlotContent)
+        : OwnerDeclaration(InOwnerDeclaration)
+        , SlotContent(InSlotContent)
+    {}
+
+    // 当 DSL 写 .SlotName()[ child ] 时会调用此 operator[]
+    DeclarationType& operator[](const TSharedRef<SWidget>& InChild)
+    {
+        SlotContent.Widget = InChild;
+        return OwnerDeclaration;
+    }
+
+private:
+    DeclarationType& OwnerDeclaration;
+    TAlwaysValidWidget& SlotContent;
+};
+
+
+/**
+ * 完整展开的 FArguments（为 SMyWidget 展开）。
+ */
+struct SMyWidget_FArguments
+{
+    // typedefs 来模仿宏产生的类型别名
+    typedef SMyWidget_FArguments WidgetArgsType;
+    typedef void WidgetType; // 占位（实际为 SMyWidget），仅为与宏语义对齐
+
+    // ---- 构造（宏 SLATE_BEGIN_ARGS 可能会生成默认值初始化） ----
+    SMyWidget_FArguments()
+        : _IsEnabled(TAttribute<bool>(true))  // SLATE_PRIVATE_ATTRIBUTE_VARIABLE(bool, IsEnabled) = true;
+        , _ForceVolatile(false)               // SLATE_PRIVATE_ARGUMENT_VARIABLE(bool, ForceVolatile) = false;
+        , _EnabledAttributesUpdate(true)      // SLATE_PRIVATE_ARGUMENT_VARIABLE(bool, EnabledAttributesUpdate) = true;
+        , _Clipping(EWidgetClipping::Inherit)               // default
+        , _PixelSnappingMethod(EWidgetPixelSnapping::Inherit)
+        , _FlowDirectionPreference(EFlowDirectionPreference::Inherit)
+        , _RenderOpacity(1.f)
+        , _RenderTransformPivot(FVector2D::ZeroVector)
+        , _AccessibleParams(TOptional<FAccessibleWidgetData>())
+    {
+    }
+
+    // ---- 私有数据成员（对应 SLATE_PRIVATE_ATTRIBUTE_VARIABLE / SLATE_PRIVATE_ARGUMENT_VARIABLE 等） ----
+
+    // Attributes (可绑定/可为常量) - 对应 SLATE_PRIVATE_ATTRIBUTE_VARIABLE
+    TAttribute<FText>                         _ToolTipText;        // SLATE_PRIVATE_ATTRIBUTE_VARIABLE(FText, ToolTipText)
+    TAttribute<TSharedPtr<IToolTip>>          _ToolTip;            // SLATE_PRIVATE_ATTRIBUTE_VARIABLE(TSharedPtr<IToolTip>, ToolTip)
+    TAttribute<TOptional<EMouseCursor::Type>> _Cursor;             // SLATE_PRIVATE_ATTRIBUTE_VARIABLE(TOptional<EMouseCursor::Type>, Cursor)
+    TAttribute<bool>                          _IsEnabled;          // SLATE_PRIVATE_ATTRIBUTE_VARIABLE(bool, IsEnabled) = true;
+    TAttribute<EVisibility>                   _Visibility;         // SLATE_PRIVATE_ATTRIBUTE_VARIABLE(EVisibility, Visibility) = Visible;
+    // Arguments (值型，仅值，不是 Attribute)
+    bool                                      _ForceVolatile;      // SLATE_PRIVATE_ARGUMENT_VARIABLE(bool, ForceVolatile) = false;
+    bool                                      _EnabledAttributesUpdate; // SLATE_PRIVATE_ARGUMENT_VARIABLE(bool, EnabledAttributesUpdate) = true;
+    EWidgetClipping                           _Clipping;           // SLATE_PRIVATE_ARGUMENT_VARIABLE(EWidgetClipping, Clipping) = Inherit;
+    EWidgetPixelSnapping                      _PixelSnappingMethod;// SLATE_PRIVATE_ARGUMENT_VARIABLE(EWidgetPixelSnapping, PixelSnappingMethod) = Inherit;
+    EFlowDirectionPreference                  _FlowDirectionPreference; // SLATE_PRIVATE_ARGUMENT_VARIABLE(EFlowDirectionPreference, FlowDirectionPreference) = Inherit;
+    float                                     _RenderOpacity;      // SLATE_PRIVATE_ARGUMENT_VARIABLE(float, RenderOpacity) = 1.f;
+    // 更多 attributes
+    TAttribute<TOptional<FSlateRenderTransform>> _RenderTransform;    // SLATE_PRIVATE_ATTRIBUTE_VARIABLE(TOptional<FSlateRenderTransform>, RenderTransform)
+    TAttribute<FVector2D>                        _RenderTransformPivot; // SLATE_PRIVATE_ATTRIBUTE_VARIABLE(FVector2D, RenderTransformPivot) = ZeroVector
+
+    // arguments
+    FName                                        _Tag;                // SLATE_PRIVATE_ARGUMENT_VARIABLE(FName, Tag)
+    TOptional<FAccessibleWidgetData>             _AccessibleParams;   // SLATE_PRIVATE_ARGUMENT_VARIABLE(TOptional<FAccessibleWidgetData>, AccessibleParams)
+    TAttribute<FText>                            _AccessibleText;     // SLATE_PRIVATE_ATTRIBUTE_VARIABLE(FText, AccessibleText)
+
+    // MetaData array
+    TArray<TSharedRef<ISlateMetaData>>           MetaData;
+
+    // ---- Named slots / Default slot (对应 SLATE_NAMED_SLOT / SLATE_DEFAULT_SLOT) ----
+    // 示例：我们提供两个命名插槽：Header（命名插槽）与 Content（默认插槽）
+    TAlwaysValidWidget                           _Header;   // 对应 SLATE_NAMED_SLOT(..., Header)
+    TAlwaysValidWidget                           _Content;  // 对应 SLATE_NAMED_SLOT(..., Content) / SLATE_DEFAULT_SLOT(..., Content)
+
+    // ---- 如果需要 event/delegate 成员，此处可声明 Delegate 类型成员（对应 SLATE_EVENT） ----
+    // 示例：声明一个事件成员（此处注释，具体 delegate type 依据需求声明）
+    // FSimpleDelegate _OnSomething; // SLATE_EVENT(FSimpleDelegate, OnSomething)
+
+    // ---- 以下为链式设置方法（对应 SLATE_PRIVATE_ATTRIBUTE_FUNCTION / SLATE_PRIVATE_ARGUMENT_FUNCTION / SLATE_NAMED_SLOT 实现） ----
+
+    // Me() 方法（对应 TSlateBaseNamedArgs::Me）
+    WidgetArgsType& Me()
+    {
+        return *this;
+    }
+
+    // ----------------------------
+    // Attribute setters (示例写法：为每个 attribute 提供多种绑定 overload，与宏的生成保持一致)
+    //
+    // 对应宏：SLATE_PRIVATE_ATTRIBUTE_FUNCTION(AttrType, AttrName)
+    // 生成的变体包括：
+    //  - AttrName(TAttribute<AttrType> InAttribute)
+    //  - AttrName_Static(...)
+    //  - AttrName_Lambda(...)
+    //  - AttrName_Raw(...)
+    //  - AttrName(TSharedRef<UserClass>, MethodPtr)
+    //  - AttrName(UserClass*, MethodPtr)
+    // ----------------------------
+
+    // ToolTipText（示例）
+    WidgetArgsType& ToolTipText(TAttribute<FText> InAttribute)
+    {
+        _ToolTipText = MoveTemp(InAttribute);
+        return Me();
+    }
+
+    template<typename... VarTypes>
+    WidgetArgsType& ToolTipText_Static(TIdentity_T<typename TAttribute<FText>::FGetter::template TFuncPtr<VarTypes...>> InFunc, VarTypes... Vars)
+    {
+        _ToolTipText = TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateStatic(InFunc, Vars...));
+        return Me();
+    }
+
+    WidgetArgsType& ToolTipText_Lambda(TFunction<FText(void)>&& InFunctor)
+    {
+        _ToolTipText = TAttribute<FText>::Create(MoveTemp(InFunctor));
+        return Me();
+    }
+
+    template<class UserClass, typename... VarTypes>
+    WidgetArgsType& ToolTipText_Raw(UserClass* InUserObject, typename TAttribute<FText>::FGetter::template TConstMethodPtr<UserClass, VarTypes...> InFunc, VarTypes... Vars)
+    {
+        _ToolTipText = TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateRaw(InUserObject, InFunc, Vars...));
+        return Me();
+    }
+
+    template<class UserClass, typename... VarTypes>
+    WidgetArgsType& ToolTipText(TSharedRef<UserClass> InUserObjectRef, typename TAttribute<FText>::FGetter::template TConstMethodPtr<UserClass, VarTypes...> InFunc, VarTypes... Vars)
+    {
+        _ToolTipText = TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateSP(InUserObjectRef, InFunc, Vars...));
+        return Me();
+    }
+
+    template<class UserClass, typename... VarTypes>
+    WidgetArgsType& ToolTipText(UserClass* InUserObject, typename TAttribute<FText>::FGetter::template TConstMethodPtr<UserClass, VarTypes...> InFunc, VarTypes... Vars)
+    {
+        _ToolTipText = TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateSP(InUserObject, InFunc, Vars...));
+        return Me();
+    }
+
+    // ToolTip attribute (TSharedPtr<IToolTip>)
+    WidgetArgsType& ToolTip(TAttribute<TSharedPtr<IToolTip>> InAttribute)
+    {
+        _ToolTip = MoveTemp(InAttribute);
+        return Me();
+    }
+    template<typename... VarTypes>
+    WidgetArgsType& ToolTip_Static(TIdentity_T<typename TAttribute<TSharedPtr<IToolTip>>::FGetter::template TFuncPtr<VarTypes...>> InFunc, VarTypes... Vars)
+    {
+        _ToolTip = TAttribute<TSharedPtr<IToolTip>>::Create(TAttribute<TSharedPtr<IToolTip>>::FGetter::CreateStatic(InFunc, Vars...));
+        return Me();
+    }
+    WidgetArgsType& ToolTip_Lambda(TFunction<TSharedPtr<IToolTip>(void)>&& InFunctor)
+    {
+        _ToolTip = TAttribute<TSharedPtr<IToolTip>>::Create(MoveTemp(InFunctor));
+        return Me();
+    }
+    template<class UserClass, typename... VarTypes>
+    WidgetArgsType& ToolTip_Raw(UserClass* InUserObject, typename TAttribute<TSharedPtr<IToolTip>>::FGetter::template TConstMethodPtr<UserClass, VarTypes...> InFunc, VarTypes... Vars)
+    {
+        _ToolTip = TAttribute<TSharedPtr<IToolTip>>::Create(TAttribute<TSharedPtr<IToolTip>>::FGetter::CreateRaw(InUserObject, InFunc, Vars...));
+        return Me();
+    }
+    template<class UserClass, typename... VarTypes>
+    WidgetArgsType& ToolTip(TSharedRef<UserClass> InUserObjectRef, typename TAttribute<TSharedPtr<IToolTip>>::FGetter::template TConstMethodPtr<UserClass, VarTypes...> InFunc, VarTypes... Vars)
+    {
+        _ToolTip = TAttribute<TSharedPtr<IToolTip>>::Create(TAttribute<TSharedPtr<IToolTip>>::FGetter::CreateSP(InUserObjectRef, InFunc, Vars...));
+        return Me();
+    }
+    template<class UserClass, typename... VarTypes>
+    WidgetArgsType& ToolTip(UserClass* InUserObject, typename TAttribute<TSharedPtr<IToolTip>>::FGetter::template TConstMethodPtr<UserClass, VarTypes...> InFunc, VarTypes... Vars)
+    {
+        _ToolTip = TAttribute<TSharedPtr<IToolTip>>::Create(TAttribute<TSharedPtr<IToolTip>>::FGetter::CreateSP(InUserObject, InFunc, Vars...));
+        return Me();
+    }
+
+    // Cursor attribute (TOptional<EMouseCursor::Type>)
+    WidgetArgsType& Cursor(TAttribute<TOptional<EMouseCursor::Type>> InAttribute)
+    {
+        _Cursor = MoveTemp(InAttribute);
+        return Me();
+    }
+    template<typename... VarTypes>
+    WidgetArgsType& Cursor_Static(TIdentity_T<typename TAttribute<TOptional<EMouseCursor::Type>>::FGetter::template TFuncPtr<VarTypes...>> InFunc, VarTypes... Vars)
+    {
+        _Cursor = TAttribute<TOptional<EMouseCursor::Type>>::Create(TAttribute<TOptional<EMouseCursor::Type>>::FGetter::CreateStatic(InFunc, Vars...));
+        return Me();
+    }
+    WidgetArgsType& Cursor_Lambda(TFunction<TOptional<EMouseCursor::Type>(void)>&& InFunctor)
+    {
+        _Cursor = TAttribute<TOptional<EMouseCursor::Type>>::Create(MoveTemp(InFunctor));
+        return Me();
+    }
+    template<class UserClass, typename... VarTypes>
+    WidgetArgsType& Cursor_Raw(UserClass* InUserObject, typename TAttribute<TOptional<EMouseCursor::Type>>::FGetter::template TConstMethodPtr<UserClass, VarTypes...> InFunc, VarTypes... Vars)
+    {
+        _Cursor = TAttribute<TOptional<EMouseCursor::Type>>::Create(TAttribute<TOptional<EMouseCursor::Type>>::FGetter::CreateRaw(InUserObject, InFunc, Vars...));
+        return Me();
+    }
+    template<class UserClass, typename... VarTypes>
+    WidgetArgsType& Cursor(TSharedRef<UserClass> InUserObjectRef, typename TAttribute<TOptional<EMouseCursor::Type>>::FGetter::template TConstMethodPtr<UserClass, VarTypes...> InFunc, VarTypes... Vars)
+    {
+        _Cursor = TAttribute<TOptional<EMouseCursor::Type>>::Create(TAttribute<TOptional<EMouseCursor::Type>>::FGetter::CreateSP(InUserObjectRef, InFunc, Vars...));
+        return Me();
+    }
+    template<class UserClass, typename... VarTypes>
+    WidgetArgsType& Cursor(UserClass* InUserObject, typename TAttribute<TOptional<EMouseCursor::Type>>::FGetter::template TConstMethodPtr<UserClass, VarTypes...> InFunc, VarTypes... Vars)
+    {
+        _Cursor = TAttribute<TOptional<EMouseCursor::Type>>::Create(TAttribute<TOptional<EMouseCursor::Type>>::FGetter::CreateSP(InUserObject, InFunc, Vars...));
+        return Me();
+    }
+
+    // Visibility (Attribute<EVisibility>)
+    WidgetArgsType& Visibility(TAttribute<EVisibility> InAttribute)
+    {
+        _Visibility = MoveTemp(InAttribute);
+        return Me();
+    }
+    template<typename... VarTypes>
+    WidgetArgsType& Visibility_Static(TIdentity_T<typename TAttribute<EVisibility>::FGetter::template TFuncPtr<VarTypes...>> InFunc, VarTypes... Vars)
+    {
+        _Visibility = TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateStatic(InFunc, Vars...));
+        return Me();
+    }
+    WidgetArgsType& Visibility_Lambda(TFunction<EVisibility(void)>&& InFunctor)
+    {
+        _Visibility = TAttribute<EVisibility>::Create(MoveTemp(InFunctor));
+        return Me();
+    }
+    template<class UserClass, typename... VarTypes>
+    WidgetArgsType& Visibility_Raw(UserClass* InUserObject, typename TAttribute<EVisibility>::FGetter::template TConstMethodPtr<UserClass, VarTypes...> InFunc, VarTypes... Vars)
+    {
+        _Visibility = TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateRaw(InUserObject, InFunc, Vars...));
+        return Me();
+    }
+    template<class UserClass, typename... VarTypes>
+    WidgetArgsType& Visibility(TSharedRef<UserClass> InUserObjectRef, typename TAttribute<EVisibility>::FGetter::template TConstMethodPtr<UserClass, VarTypes...> InFunc, VarTypes... Vars)
+    {
+        _Visibility = TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(InUserObjectRef, InFunc, Vars...));
+        return Me();
+    }
+    template<class UserClass, typename... VarTypes>
+    WidgetArgsType& Visibility(UserClass* InUserObject, typename TAttribute<EVisibility>::FGetter::template TConstMethodPtr<UserClass, VarTypes...> InFunc, VarTypes... Vars)
+    {
+        _Visibility = TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(InUserObject, InFunc, Vars...));
+        return Me();
+    }
+
+    // AccessibleText
+    WidgetArgsType& AccessibleText(TAttribute<FText> InAttribute)
+    {
+        _AccessibleText = MoveTemp(InAttribute);
+        return Me();
+    }
+    template<typename... VarTypes>
+    WidgetArgsType& AccessibleText_Static(TIdentity_T<typename TAttribute<FText>::FGetter::template TFuncPtr<VarTypes...>> InFunc, VarTypes... Vars)
+    {
+        _AccessibleText = TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateStatic(InFunc, Vars...));
+        return Me();
+    }
+    WidgetArgsType& AccessibleText_Lambda(TFunction<FText(void)>&& InFunctor)
+    {
+        _AccessibleText = TAttribute<FText>::Create(MoveTemp(InFunctor));
+        return Me();
+    }
+    template<class UserClass, typename... VarTypes>
+    WidgetArgsType& AccessibleText_Raw(UserClass* InUserObject, typename TAttribute<FText>::FGetter::template TConstMethodPtr<UserClass, VarTypes...> InFunc, VarTypes... Vars)
+    {
+        _AccessibleText = TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateRaw(InUserObject, InFunc, Vars...));
+        return Me();
+    }
+    template<class UserClass, typename... VarTypes>
+    WidgetArgsType& AccessibleText(TSharedRef<UserClass> InUserObjectRef, typename TAttribute<FText>::FGetter::template TConstMethodPtr<UserClass, VarTypes...> InFunc, VarTypes... Vars)
+    {
+        _AccessibleText = TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateSP(InUserObjectRef, InFunc, Vars...));
+        return Me();
+    }
+    template<class UserClass, typename... VarTypes>
+    WidgetArgsType& AccessibleText(UserClass* InUserObject, typename TAttribute<FText>::FGetter::template TConstMethodPtr<UserClass, VarTypes...> InFunc, VarTypes... Vars)
+    {
+        _AccessibleText = TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateSP(InUserObject, InFunc, Vars...));
+        return Me();
+    }
+
+    // RenderTransform (TOptional<FSlateRenderTransform>)
+    WidgetArgsType& RenderTransform(TAttribute<TOptional<FSlateRenderTransform>> InAttribute)
+    {
+        _RenderTransform = MoveTemp(InAttribute);
+        return Me();
+    }
+    template<typename... VarTypes>
+    WidgetArgsType& RenderTransform_Static(TIdentity_T<typename TAttribute<TOptional<FSlateRenderTransform>>::FGetter::template TFuncPtr<VarTypes...>> InFunc, VarTypes... Vars)
+    {
+        _RenderTransform = TAttribute<TOptional<FSlateRenderTransform>>::Create(TAttribute<TOptional<FSlateRenderTransform>>::FGetter::CreateStatic(InFunc, Vars...));
+        return Me();
+    }
+    WidgetArgsType& RenderTransform_Lambda(TFunction<TOptional<FSlateRenderTransform>(void)>&& InFunctor)
+    {
+        _RenderTransform = TAttribute<TOptional<FSlateRenderTransform>>::Create(MoveTemp(InFunctor));
+        return Me();
+    }
+    template<class UserClass, typename... VarTypes>
+    WidgetArgsType& RenderTransform_Raw(UserClass* InUserObject, typename TAttribute<TOptional<FSlateRenderTransform>>::FGetter::template TConstMethodPtr<UserClass, VarTypes...> InFunc, VarTypes... Vars)
+    {
+        _RenderTransform = TAttribute<TOptional<FSlateRenderTransform>>::Create(TAttribute<TOptional<FSlateRenderTransform>>::FGetter::CreateRaw(InUserObject, InFunc, Vars...));
+        return Me();
+    }
+    template<class UserClass, typename... VarTypes>
+    WidgetArgsType& RenderTransform(TSharedRef<UserClass> InUserObjectRef, typename TAttribute<TOptional<FSlateRenderTransform>>::FGetter::template TConstMethodPtr<UserClass, VarTypes...> InFunc, VarTypes... Vars)
+    {
+        _RenderTransform = TAttribute<TOptional<FSlateRenderTransform>>::Create(TAttribute<TOptional<FSlateRenderTransform>>::FGetter::CreateSP(InUserObjectRef, InFunc, Vars...));
+        return Me();
+    }
+    template<class UserClass, typename... VarTypes>
+    WidgetArgsType& RenderTransform(UserClass* InUserObject, typename TAttribute<TOptional<FSlateRenderTransform>>::FGetter::template TConstMethodPtr<UserClass, VarTypes...> InFunc, VarTypes... Vars)
+    {
+        _RenderTransform = TAttribute<TOptional<FSlateRenderTransform>>::Create(TAttribute<TOptional<FSlateRenderTransform>>::FGetter::CreateSP(InUserObject, InFunc, Vars...));
+        return Me();
+    }
+
+    // RenderTransformPivot (FVector2D)
+    WidgetArgsType& RenderTransformPivot(TAttribute<FVector2D> InAttribute)
+    {
+        _RenderTransformPivot = MoveTemp(InAttribute);
+        return Me();
+    }
+    template<typename... VarTypes>
+    WidgetArgsType& RenderTransformPivot_Static(TIdentity_T<typename TAttribute<FVector2D>::FGetter::template TFuncPtr<VarTypes...>> InFunc, VarTypes... Vars)
+    {
+        _RenderTransformPivot = TAttribute<FVector2D>::Create(TAttribute<FVector2D>::FGetter::CreateStatic(InFunc, Vars...));
+        return Me();
+    }
+    WidgetArgsType& RenderTransformPivot_Lambda(TFunction<FVector2D(void)>&& InFunctor)
+    {
+        _RenderTransformPivot = TAttribute<FVector2D>::Create(MoveTemp(InFunctor));
+        return Me();
+    }
+    template<class UserClass, typename... VarTypes>
+    WidgetArgsType& RenderTransformPivot_Raw(UserClass* InUserObject, typename TAttribute<FVector2D>::FGetter::template TConstMethodPtr<UserClass, VarTypes...> InFunc, VarTypes... Vars)
+    {
+        _RenderTransformPivot = TAttribute<FVector2D>::Create(TAttribute<FVector2D>::FGetter::CreateRaw(InUserObject, InFunc, Vars...));
+        return Me();
+    }
+    template<class UserClass, typename... VarTypes>
+    WidgetArgsType& RenderTransformPivot(TSharedRef<UserClass> InUserObjectRef, typename TAttribute<FVector2D>::FGetter::template TConstMethodPtr<UserClass, VarTypes...> InFunc, VarTypes... Vars)
+    {
+        _RenderTransformPivot = TAttribute<FVector2D>::Create(TAttribute<FVector2D>::FGetter::CreateSP(InUserObjectRef, InFunc, Vars...));
+        return Me();
+    }
+    template<class UserClass, typename... VarTypes>
+    WidgetArgsType& RenderTransformPivot(UserClass* InUserObject, typename TAttribute<FVector2D>::FGetter::template TConstMethodPtr<UserClass, VarTypes...> InFunc, VarTypes... Vars)
+    {
+        _RenderTransformPivot = TAttribute<FVector2D>::Create(TAttribute<FVector2D>::FGetter::CreateSP(InUserObject, InFunc, Vars...));
+        return Me();
+    }
+
+    // ----------------------------
+    // Argument setters (值型)
+    // 对应宏 SLATE_PRIVATE_ARGUMENT_FUNCTION(ArgType, ArgName)
+    // ----------------------------
+
+    WidgetArgsType& ForceVolatile(bool In)
+    {
+        _ForceVolatile = In;
+        return Me();
+    }
+
+    WidgetArgsType& EnabledAttributesUpdate(bool In)
+    {
+        _EnabledAttributesUpdate = In;
+        return Me();
+    }
+
+    WidgetArgsType& Clipping(EWidgetClipping In)
+    {
+        _Clipping = In;
+        return Me();
+    }
+
+    WidgetArgsType& PixelSnappingMethod(EWidgetPixelSnapping In)
+    {
+        _PixelSnappingMethod = In;
+        return Me();
+    }
+
+    WidgetArgsType& FlowDirectionPreference(EFlowDirectionPreference In)
+    {
+        _FlowDirectionPreference = In;
+        return Me();
+    }
+
+    WidgetArgsType& RenderOpacity(float In)
+    {
+        _RenderOpacity = In;
+        return Me();
+    }
+
+    WidgetArgsType& Tag(FName In)
+    {
+        _Tag = In;
+        return Me();
+    }
+
+    WidgetArgsType& AccessibleParams(TOptional<FAccessibleWidgetData> In)
+    {
+        _AccessibleParams = In;
+        return Me();
+    }
+
+    // ----------------------------
+    // MetaData helpers（对应 TSlateBaseNamedArgs::AddMetaData 重载）
+    // ----------------------------
+    template<typename MetaDataType, typename Arg0Type>
+    WidgetArgsType& AddMetaData(Arg0Type InArg0)
+    {
+        MetaData.Add(MakeShared<MetaDataType>(InArg0));
+        return Me();
+    }
+    template<typename MetaDataType, typename Arg0Type, typename Arg1Type>
+    WidgetArgsType& AddMetaData(Arg0Type InArg0, Arg1Type InArg1)
+    {
+        MetaData.Add(MakeShared<MetaDataType>(InArg0, InArg1));
+        return Me();
+    }
+    WidgetArgsType& AddMetaData(TSharedRef<ISlateMetaData> InMetaData)
+    {
+        MetaData.Add(InMetaData);
+        return Me();
+    }
+
+    // ----------------------------
+    // Named slot support（对应 SLATE_NAMED_SLOT / SLATE_DEFAULT_SLOT）
+    // 通过提供 SlotName() 返回 NamedSlotProperty，和重载 operator[] 来支持默认 slot
+    // ----------------------------
+
+    // Header() named slot accessor (对应 SLATE_NAMED_SLOT)
+    NamedSlotProperty<WidgetArgsType> Header()
+    {
+        return NamedSlotProperty<WidgetArgsType>(*this, _Header);
+    }
+
+    // Content() named slot accessor (对应 SLATE_NAMED_SLOT)
+    NamedSlotProperty<WidgetArgsType> Content()
+    {
+        return NamedSlotProperty<WidgetArgsType>(*this, _Content);
+    }
+
+    // Default slot operator[] (对应 SLATE_DEFAULT_SLOT)
+    // 使得 SNew(SMyWidget)[ child ] 将 child 存入默认槽 _Content
+    WidgetArgsType& operator[](const TSharedRef<SWidget>& InChild)
+    {
+        _Content.Widget = InChild;
+        return Me();
+    }
+
+    // 也提供 Content as default explicit operator to follow macro semantics:
+    WidgetArgsType& ContentDefault(const TSharedRef<SWidget>& InChild)
+    {
+        _Content.Widget = InChild;
+        return Me();
+    }
+
+    // ----------------------------
+    // 供外部读取内部成员（通常 InArgs._Something 在 Construct 中使用）
+    // 这里直接暴露成员是为了演示：Construct(const FArguments& InArgs) 可读取 InArgs._ToolTipText 等
+    // ----------------------------
+    // （成员已在顶部定义）
+
+}; // end struct SMyWidget_FArgumentsaz
+```
+
+
 # 第三方编辑器插件的创建
 
 # 扩展编辑器模块
