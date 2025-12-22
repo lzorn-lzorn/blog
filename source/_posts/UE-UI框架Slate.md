@@ -26,27 +26,90 @@ UE 使用 C++ 实现了自己原生的一套UI界面, 这里的 C++ 是纯C++ �
 接下来会一一说明
 # UI窗口的组织SWindow
 窗口是一个典型的树结构, `SWindow` 中存有一个父类的弱引用(`TWeakPtr<SWindow> ParentWindowPtr;`), 同时存有所有子窗口的共享应用(`TArray<TSharedRef<SWindow>> ChildWindows;`). `FSlateApplication` 中管理了所有顶窗口, 即没有父窗口的窗口(`TArray<TSharedRef<SWindow>> SlateWindows;`)
+
 # 窗口的渲染
-渲染流程的调用
-`FEngineLoop::Tick` -> `FSlateApplication::Tick`
+# UI窗口的组织SWindow
+窗口是一个典型的树结构, `SWindow` 中存有一个父类的弱引用(`TWeakPtr<SWindow> ParentWindowPtr;`), 同时存有所有子窗口的共享应用(`TArray<TSharedRef<SWindow>> ChildWindows;`). `FSlateApplication` 中管理了所有顶窗口, 即没有父窗口的窗口(`TArray<TSharedRef<SWindow>> SlateWindows;`)
+
+# 窗口的渲染
+## 渲染执行的入口-模态窗口机制
+Slate 中渲染每一个 `SWindows` 大致分为两个主要阶段: 数据处理阶段, 实际渲染 Draw-Call 的调用.
+Slate 中主要负责的是前者, 换句话说, Slate 只是负责处理窗口的各种数据, 实际的渲染会派发给渲染器(SlateRender), 其实际调用是:
+`FEngineLoop::Tick` 
+-> `FSlateApplication::Tick` 
 -> `FSlateApplication::TickAndDrawWidgets`
 -> `FSlateApplication::DrawWindows`
--> `FSlateApplication::DrawWindowAndChildren(CurrentWindow)`
--> `FSlateApplication::DrawWindowAndChildren(CurrentWindow->GetChildWindow())`
--> `SWindow::PaintWindow`
--> `FSlateInvlidationRoot::PaintInvalidationRoot`: FSlateInvalidationContext 是一次窗口/绘制遍历的"上下文对象", 携带了画布、绘制参数、剪裁/缩放信息和若干开关, 供 PaintInvalidationRoot(以及递归的子控件绘制逻辑) 使用来决定如何绘制/跳过, 如何构建 hit-test, 以及如何处理缓存的绘制元素
--> `SWindow::PaintSlowPath`: 慢路径绘制, 一次完整的, 保守的从根到叶的遍历——重新评估布局/可见性/几何, 重建/绘制每个 widget, 更新 hit-test 网格, 并重建或刷新绘制元素缓存(CachedElementData). 它保证在任何结构性或状态变化后画面正确, 但开销大; 因此只有在 fast-path 不可用或检测到需要时才使用.
-对应的 `PaintFastPath`: 在没有结构性变化时尽量"重用上帧结果", 只做必要更新(Eg: 几何/变换、剪裁、z 层调整、对少量“最终更新”widget 的重绘、以及同步 hit-test)
--> `SWidget::Paint`: 准备绘制
--> `Virtual SWidget::OnPaint`: 真正的对应控件绘制
--> `FSlateDrawElement::MakeBox`: 工厂绘制方法, 向命令列表添加矩形类型的绘制.
-`FSlateDrawElement` 是 Slate 渲染流水线里的最小“绘制命令”单元：框架把 UI 的视觉输出描述为按序列出的若干 `FSlateDrawElement`，这些元素最终被打包成 render batches 并提交到渲染器/GPU
+从 `FSlateApplication::DrawWindows` 这个函数开始, 正式进入渲染的流程, 如下图
+![UE- UI的渲染入口](./images/UE- UI的渲染入口.png)
+在这里设计到一个概念: <font color="#c0504d">模态窗口(Modal Window)</font>, 这个是一个在UI设计中常用的概念: 其是一种特殊的用户界面元素, 当它被激活时, 会阻止用户与应用程序的其他部分进行交互, 直到用户完成当前操作并关闭该窗口. 也就是强制用户进行完当前操作. 
 
-实际上真正向GPU提交绘制命令并不在Slate层中, FSlateApplication 将所有数据准备好之后, 在 `FSlateApplication::PrivateDrawWindows` 中调用 `Renderer->DrawWindows`
+在 WPF 中 `ShowDialog` 就是一种模态窗口; 在 Qt 中也可以调用 `QDialog` 中的 `setModal`, 来设置其模态属性; 在 Electron 中, 
+```JavaScript
+let modal = new BrowserWindow({
+  parent: mainWindow,  // 设置父窗口
+  modal: true,         // 设置为模态
+  show: false
+});
+```
+也可以设置 modal 属性. 
+
+所以, 在渲染时, Slate 会优先渲染模态窗口. 在整个渲染的入口中, 所有的步骤都是在处理 `DrawWindowArgs.OutDrawBuffer` 并使其可以达到可以被渲染器直接使用的程度.
+
+在实际渲染数据处理的过程中, 有两个阶段:
+1. 预处理: `DrawPrepass()` 其目的主要是处理窗口和控件的各种尺寸
+2. 正式进行渲染数据的处理: `DrawWindowAndChildren()`
+
+## 对于渲染的数据操作-快慢路径绘制流程
+对于正在进行渲染数据的处理流程: 如下图
+![渲染单个窗口进行数据操作.png](./images/渲染单个窗口进行数据操作.png)
+这里出现了第二个概念: <font color="#c0504d">快路径渲染和慢路径渲染</font>, 同时需要介绍UE这里的缓存机制: UI 框架为了优化渲染性能, 尽可能减少渲染次数, 在很多时候不会对窗口进行重新绘制, 而是采用缓存中已有的数据进行渲染, 这就是快路径渲染. 而对于缓存实效的情况, 则需要按照正常流程渲染窗口, 子窗口, 以及控件, 也就是慢路径渲染, 所以只有在慢路径渲染的情况下才会去重新调用控件的 `OnPaint()` 方法.
+更详细的来说: 慢路径渲染是一次完整的, 保守的从根到叶的遍历——重新评估布局/可见性/几何, 重建/绘制每个 widget, 更新 hit-test 网格, 并重建或刷新绘制元素缓存(CachedElementData). 它保证在任何结构性或状态变化后画面正确, 但开销大; 而快路径绘制是在没有结构性变化时尽量"重用上帧结果", 只做必要更新(Eg: 几何/变换、剪裁、z 层调整、对少量"最终更新" widget 的重绘、以及同步 hit-test)
+
+## Widget的渲染流程: 失效机制(Invalidate)
+在每帧渲染时会检查失效状态, 如果调用了 `SetVisibility()`, `SetRenderTransform()` 等函数则会触发失效检查, 会在控件内部调用 `Invalidate(Reason)`, 然后触发控件的重新绘制, 但是并不是所有的重绘都要重新走一边流程, 在UE中由以下失效理由:
+```Cpp
+enum class EInvalidateWidgetReason : uint8
+{
+    None = 0, // 不需要任何无效化
+    Layout = 1 << 0,
+    Paint = 1 << 1,
+    Volatility = 1 << 2,
+    ChildOrder = 1 << 3,
+    RenderTransform = 1 << 4,
+    Visibility = 1 << 5,
+    AttributeRegistration = 1 << 6,
+    Prepass = 1 << 7,
+    PaintAndVolatility = Paint | Volatility,
+    LayoutAndVolatility = Layout | Volatility,
+};
+```
+其中: 
+- `Layout`: 则会触发重布局-则会对控件进行重新测量, 重新准备数据, 重新绘制, 是开销最大的一种 `Reason`. 但是如果控件的位置变化, 大小变化, 排列变化(Padding, Slot 这种参数变化), 则必须重布局
+- `Paint`: 表示控件需要重新绘制，但不会影响布局(例如: Icon的颜色变了吗, 文本颜色变了, 仅视觉内容不同)
+- `Volatility` 表示波动性: 如果一个控件被设置为 `Volatility` 则其会每帧调用 `Paint` 重新绘制, 如果没有设置为 `Volatility` 的控件, 则会复用其缓存的信息. (动画控件，或Tick频繁变内容的控件), 由于控件由原来的静态变为动态, 会影响 `RenderBatch`
+- `ChildOrder`: 子控件被增加或删除(如Panel子项变动). 属于重布局的变动，隐含触发 Prepass/Layout
+- `RenderTransform`: 控件的Render变换(位置、旋转、缩放等), 发生变化. <u>只影响控件渲染, 影响布局</u>.
+- `Visibility`: 可见性变化(Visible/Collapsed/Hidden)通常需要<u>重布局</u>, 因为不可见控件不再占空间
+    - Collapsed: 必然重布局的, 不占据任何布局空间, 等价于在树里将节点从Panel的子集合中临时移除那样的效果
+    - Hidden: 只是重绘, 不会强制触发重布局( ==todo==: 待验证, 断不到源码位置)
+- `AttributeRegistration`: 属性的绑定/解绑变化(SlateAttribute绑定/解绑)时触发. 用于属性反射或Slate绑定机制内部处理
+- `Prepass`: <u>递归强制</u>重走子树的Prepass(递归更新DesiredSize), 一般用于布局大幅改变或子节点数巨变，需要全部节点自下而上检查尺寸, 比 `Layout` 还消耗性能
+
+如果父控件失效了, 则其失效标记会扩散到子控件. 对于一些经常变化颜色和UI动画应该设置 `Volatility` 往往是比较保险的
+
+在UE的UI中还有常见的两种优化策略:
+- 合批优化: 其本质是, 对于满足一些条件UI元素进行合并 Draw-Call, 可以只使用一次 Draw-Call 来批量绘制UI元素
+- 重绘盒优化: 
+
+## 实际的绘制调用(Draw-Call)
+最后, 实际上真正向GPU提交绘制命令并不在Slate层中, FSlateApplication 将所有数据准备好之后, 在 `FSlateApplication::PrivateDrawWindows` 中调用 `Renderer->DrawWindows`
 最后进入 `SlateRHIRender::DrawWindow_RenderThread` 中调用 `FRHICommandList::BeginDrawingViewport` (RHICmdList) ->
 `FRHICommandList::RHIBeginDrawingViewport` (GetContext()), 进入真实运行的在当前系统的 RenderDynamicRHI 封装中 ->
 `FRHICommandList::BeginRenderPass` (RHICmdList) ->
-`FSlateRHIRenderingPolicy::DrawElements` (RenderingPolicy) 内部会设置各种和渲染有关的细节(Eg: 顶点着色器, 像素着色器, 纹理, 渲染资源), 其中每一次对 `FRHICommandList::DrawIndexedPrimitive` 的调用就是一次 DrawCall
+`FSlateRHIRenderingPolicy::DrawElements` (RenderingPolicy) 内部会设置各种和渲染有关的细节(Eg: 顶点着色器, 像素着色器, 纹理, 渲染资源), 其中每一次对 `FRHICommandList::DrawIndexedPrimitive` 的调用就是一次 DrawCall, 具体流程如下:
+![实际的渲染Draw-Call](./images/实际的渲染Draw-Call.png)
+更详细的来说, GPU(同时包括渲染API)只是渲染最基础的各种图元和定点信息和片段信息, 而这些信息会在之前的 SlateApplication 阶段就基本已经处理好, 在 Render 中只是将这些基本的 WindowElement 转化为顶点数据和片段数据(像素数据), 由于UE对各种渲染API的封装, 所以不必关心具体的渲染细节, 例如: 在 Vulkan 中实际上已经没有 VBO, EBO这种结构, 已经被 Vulkan 抽象为一个缓冲区等.
+
 # 窗口的事件响应
 
 ## 屏幕网格
