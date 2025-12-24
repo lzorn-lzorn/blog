@@ -100,8 +100,8 @@ enum class EInvalidateWidgetReason : uint8
 如果父控件失效了, 则其失效标记会扩散到子控件. 对于一些经常变化颜色和UI动画应该设置 `Volatility` 往往是比较保险的
 
 在UE的UI中还有常见的两种优化策略:
-- 合批优化: 其本质是, 对于满足一些条件UI元素进行合并 Draw-Call, 可以只使用一次 Draw-Call 来批量绘制UI元素
-- 重绘盒优化: 
+- 合批优化: 其本质是, 对于满足一些条件UI元素进行合并 Draw-Call, 可以只使用一次 Draw-Call 来批量绘制UI元素. 具体见后 {UE-UI框架Slate-2-Slate的监控和优化}
+- 重绘盒优化: 具体见后 {UE-UI框架Slate-2-Slate的监控和优化}
 
 ## 实际的绘制调用(Draw-Call)
 最后, 实际上真正向GPU提交绘制命令并不在Slate层中, FSlateApplication 将所有数据准备好之后, 在 `FSlateApplication::PrivateDrawWindows` 中调用 `Renderer->DrawWindows`
