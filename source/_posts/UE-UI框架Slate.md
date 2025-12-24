@@ -40,7 +40,9 @@ Slate 中主要负责的是前者, 换句话说, Slate 只是负责处理窗口�
 -> `FSlateApplication::TickAndDrawWidgets`
 -> `FSlateApplication::DrawWindows`
 从 `FSlateApplication::DrawWindows` 这个函数开始, 正式进入渲染的流程, 如下图
-![UE- UI的渲染入口](./images/UE- UI的渲染入口.png)
+
+![UE-UI的渲染入口](./images/UE-UI的渲染入口.png)
+
 在这里设计到一个概念: <font color="#c0504d">模态窗口(Modal Window)</font>, 这个是一个在UI设计中常用的概念: 其是一种特殊的用户界面元素, 当它被激活时, 会阻止用户与应用程序的其他部分进行交互, 直到用户完成当前操作并关闭该窗口. 也就是强制用户进行完当前操作. 
 
 在 WPF 中 `ShowDialog` 就是一种模态窗口; 在 Qt 中也可以调用 `QDialog` 中的 `setModal`, 来设置其模态属性; 在 Electron 中, 
