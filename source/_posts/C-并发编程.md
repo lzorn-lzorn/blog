@@ -849,7 +849,7 @@ void lock(L1& l1, L2& l2, L3&...l3){
 	}
 }
 ```
-算法的思路是: 假设线程1, 2同时申请 A, B, C 三类资源. 1 的顺序是: A → B → C; 2的顺序是: B → A → C;
+算法的思路是: 假设线程1, 2同时申请 A, B, C 三类资源. 1 的顺序是: A -> B -> C; 2的顺序是: B -> A -> C;
 1. 1锁定了A; 2锁定了B;
 2. 1锁定B失败(try_lock()), 释放A, 在用 lock 锁定B(由于2已经上锁B, 所以lock()阻塞); 此时2申请A(try_lock):
 	1. 如果1已经释放A, 2成功锁定A, 继续锁定C
@@ -1822,6 +1822,242 @@ void consumer() {
 站在硬件的角度来说, 并不是所有硬件都能天然的维持内存一致性. 只有Intel的X86架构可以做到这一点, 既然要继承这个传统必然会出现挤牙膏的现象. 
 但是对于arm来说, 并不需要维持一致性, 实际arm架构的内存本身就是一个分布式系统. 所以如果不在C++层面指定内存序很有可能会出现, 多线程程序在X86上正常运转, 但是在arm架构下出现问题. 
 本质上, 当你在atomic中指定内存序时, 相当于创建了内存屏障，在C++中你可以手动的设置内存屏障 `atomic_thread_fence(tag)`
+
+## 虚假唤醒
+
+## ABA 问题
+[博客园: ABA 问题的本质及其解决方法](https://www.cnblogs.com/flydean/p/aba-cas-stamp. html)
+ [CAS(Compare-And-Swap)操作与 ABA 问题](https://www.cnblogs.com/niumachen/p/18706567)
+ [Wiki: ABA problem](https://en.wikipedia. org/wiki/ABA_problem)
+在多线程语境下, ABA 问题往往发生在同步时, 即当一个位置被读取两次都读到了同样的值, 此时该线程则判定原子变量成功. 但是对于第二个线程而言是先修改然后再复原.
+EG:
+1. 线程 P1 读取 A 从一个共享内存中
+2. 线程 P2 夺取执行权(抢占式)
+3. P2 写入 B 至共享内存
+4. P2 写回 A 至共享内存
+5. P2 结束, P1 恢复执行
+6. P1 读取该共享内存, 发现值没有变化继续执行
+
+该问题在 无锁数据结构中非常常见, 如果从列表中移除一个元素、对其进行删除, 然后分配一个新的元素并将其添加到列表中, 由于最近使用优先( MRU )内存分配机制, 通常会发现分配的对象与已删除的对象位于相同位置. 因此, 新元素的指针往往与旧元素的指针相同, 从而导致了 ABA 问题.
+
+EG: 以下 LockFreeStack 存在 ABA 问题:
+```Cpp
+class Stack {
+  std: : atomic<Obj*> top_ptr;
+  // 忽视强异常安全保证
+  Obj* Pop() {
+    while (1) {
+      Obj* ret_ptr = top_ptr;
+      if (ret_ptr == nullptr) return nullptr;
+      // For simplicity, suppose that we can ensure that this dereference is safe
+      // (i.e., that no other thread has popped the stack in the meantime).
+      Obj* next_ptr = ret_ptr->next;
+      // If the top node is still ret, then assume no one has changed the stack.
+      // (That statement is not always true because of the ABA problem)
+      // Atomically replace top with next.
+      if (top_ptr.compare_exchange_weak(ret_ptr, next_ptr)) {
+        return ret_ptr;
+      }
+      // The stack has changed, start over.
+    }
+  }
+  //
+  // Pushes the object specified by obj_ptr to stack.
+  //
+  void Push(Obj* obj_ptr) {
+    while (1) {
+      Obj* next_ptr = top_ptr;
+      obj_ptr->next = next_ptr;
+      // If the top node is still next, then assume no one has changed the stack.
+      // (That statement is not always true because of the ABA problem)
+      // Atomically replace top with obj.
+      if (top_ptr.compare_exchange_weak(next_ptr, obj_ptr)) {
+        return;
+      }
+      // The stack has changed, start over.
+    }
+  }
+};
+```
+加入堆栈中最初包含元素: top -> A -> B -> C
+线程 1 开始运行 pop: 
+```cpp
+ret_ptr = A;
+next_ptr = B;
+```
+
+线程 1 在执行到`compare_exchange_weak` 之前可能会由于线程调度的原因而中断. 
+```cpp
+{ // Thread 2 runs pop:
+  ret_ptr = A;
+  next_ptr = B;
+  compare_exchange_weak(A, B)  // Success, top = B
+  return A;
+} // Now the stack is top -> B -> C
+{ // Thread 2 runs pop again:
+  ret_ptr = B;
+  next_ptr = C;
+  compare_exchange_weak(B, C)  // Success, top = C
+  return B;
+} // Now the stack is top -> C
+delete B;
+{ // Thread 2 now pushes A back onto the stack:
+  A->next = C;
+  compare_exchange_weak(C, A)  // Success, top = A
+}
+```
+现在堆栈中包含元素: top -> A -> C
+当线程 1 恢复时执行: `compare_exchange_weak(A, B)`
+
+这条指令会执行成功, 因为判断 `top == ret_ptr` 为真( 因为元素的值都是 A ), 所以它把 `top` 设置为 `next`( 也就是 B ). 由于 B 已被释放, 程序将在尝试查看堆栈上的第一个元素时访问已释放的内存. 在 C++ 中, 如此处所示, 访问已释放的内存是未定义的行为
+
+解决方式源于 "gcc-4.8.3/libsanitizer/sanitizer_common/sanitizer_lfstack.h", 即使用状态计数器, 即使用一个只增加的计数器来表示
+```Cpp
+template<typename T>
+struct LFStack {
+  void Clear() {
+    atomic_store(&head_, 0, memory_order_relaxed);
+  }
+​
+  bool Empty() const {
+    return (atomic_load(&head_, memory_order_relaxed) & kPtrMask) == 0;
+  }
+​
+  void Push(T *p) {
+    u64 cmp = atomic_load(&head_, memory_order_relaxed);
+    for (;;) {
+      u64 cnt = (cmp & kCounterMask) + kCounterInc;
+      u64 xch = (u64)(uptr)p | cnt;
+      p->next = (T*)(uptr)(cmp & kPtrMask);
+      if (atomic_compare_exchange_weak(&head_, &cmp, xch, memory_order_release))
+        break;
+    }
+  }
+​
+  T *Pop() {
+    u64 cmp = atomic_load(&head_, memory_order_acquire);
+    for (;;) {
+      T *cur = (T*)(uptr)(cmp & kPtrMask);
+      if (cur == 0)
+        return 0;
+      T *nxt = cur->next;
+      u64 cnt = (cmp & kCounterMask);
+      u64 xch = (u64)(uptr)nxt | cnt;
+      if (atomic_compare_exchange_weak(&head_, &cmp, xch, memory_order_acquire))
+        return cur;
+    }
+  }
+​
+  // private:
+  static const int kCounterBits = FIRST_32_SECOND_64(32, 17);
+  static const u64 kPtrMask = ((u64)-1) >> kCounterBits;
+  static const u64 kCounterMask = ~kPtrMask;
+  static const u64 kCounterInc = kPtrMask + 1;
+​
+  atomic_uint64_t head_;
+};
+```
+
+
+## 伪共享问题(False Sharing)
+[知乎: 缓存一致性原理](https://zhuanlan.zhihu.com/p/651223829)
+现代 CPU 的缓存以 cache line(通常 64 字节)为单位读写内存. 两个线程分别修改不同的变量, 但这两个变量恰好位于同一条 cache line 上时
+```text
+Cache Line (64 bytes)
+┌──────────────────────────────────┐
+│  cat (Thread 1 写)  │  dog (Thread 2 写)  │
+└──────────────────────────────────┘
+```
+- Thread 1 修改 `cat` -> 整条 cache line 失效
+- Thread 2 的缓存中这条 line 被标记为无效, 必须重新从内存/其他核心加载
+- Thread 2 修改 `dog` -> 又导致 Thread 1 的缓存失效
+
+两个线程反复互相踩踏对方的缓存, 性能急剧下降. 两个变量逻辑上完全独立, 但因为物理上靠得太近, 导致了不必要的缓存同步, 即伪共享. 常见于高频写入的场景, 一般来说满足一下三个条件时, 伪共享会发生:
+1. 多个线程并发访问不同变量
+2. 至少有一个线程在做写操作
+3. 这些变量在内存中距离 < 64 字节(同一 cache line)
+
+为了防止伪共享的发生, 我们其实应该手动将数据对齐至 CPU 的一级缓存行. 虽然通常来说 CPU 的一级缓存是 64 字节, 但是 C++17 标准提供了一个专门常量来说明应该对齐至多少: [`alignas(hardware_destructive_interference_size)`](https://en.cppreference.com/w/cpp/thread/hardware_destructive_interference_size. html), 其指明为避免假共享, 两个对象之间的最小偏移量.
+
+Eg: Linux 内核中中断计数器 `strutct irq_stat; `
+```C
+struct irq_stat {
+// CPU 0
+    unsigned int irq_count;
+    unsigned int softirq_count;
+// CPU 1...
+// CPU 2...
+};
+```
+此时每个核心都高频的更新自己的中断计数器, 导致 `irq_stat` 的其他变量被反复刷新.
+其使用 [`___cacheline_aligned_in_smp`](https://stackoverflow.com/questions/25947962/cacheline-aligned-in-smp-for-structure-in-the-linux-kernel) 解决该问题. 其等价于在结构最后追加一个 Padding, 使其对齐至 Cache line
+```C
+// include/linux/cache. h
+#ifndef ____cacheline_aligned  
+#define ____cacheline_aligned __attribute__((__aligned__(SMP_CACHE_BYTES)))  
+#endif  
+#ifndef ____cacheline_aligned_in_smp  
+#ifdef CONFIG_SMP  
+#define ____cacheline_aligned_in_smp ____cacheline_aligned  
+#else  
+#define ____cacheline_aligned_in_smp  
+#endif /* CONFIG_SMP */  
+#endif  
+#ifndef __cacheline_aligned  
+#define __cacheline_aligned                    \  
+__attribute__((__aligned__(SMP_CACHE_BYTES),            \
+__section__(".data.cacheline_aligned")))  
+#endif /* __cacheline_aligned */  
+#ifndef __cacheline_aligned_in_smp  
+#ifdef CONFIG_SMP  
+#define __cacheline_aligned_in_smp __cacheline_aligned  
+#else  
+#define __cacheline_aligned_in_smp  
+#endif /* CONFIG_SMP */  
+#endif  
+
+/*  
+* The maximum alignment needed for some critical structures  
+* These could be inter-node cacheline sizes/L3 cacheline  
+* size etc.  Define this in asm/cache. h for your arch  
+*/  
+#ifndef INTERNODE_CACHE_SHIFT  
+#define INTERNODE_CACHE_SHIFT L1_CACHE_SHIFT  
+#endif  
+#if !defined(____cacheline_internodealigned_in_smp)  
+#if defined(CONFIG_SMP)  
+#define ____cacheline_internodealigned_in_smp \  
+__attribute__((__aligned__(1 << (INTERNODE_CACHE_SHIFT))))#else  
+#define ____cacheline_internodealigned_in_smp  
+#endif  
+#endif
+```
+
+> MESI 协议
+> 
+> [Wikipedia: MESI protocol](https://en.wikipedia.org/wiki/MESI_protocol)
+> 
+> "当一个核 A 需要读取另外一个核 B 的脏缓存行时, 则由 B 将数据发送给 A". 问题在于 L1, L2 都是每一个核心自己的专用的, A 是如何知道 B 的该行数据是否是脏数据. 为了知道其他核心缓存行的状态, 目前使用的 MESI 协议, 即
+> - M (修改 Modified): 本地处理器已经修改缓存行, 即是脏行, 它的内容与内存中的内容不一样, 并且此 cache 只有本地一个拷贝(专有)
+> - E (专有 Exclusive): 缓存行内容和内存中的一样, 而且其它处理器都没有这行数据
+> - S (共享, Shared): 缓存行内容和内存中的一样, 有可能其它处理器也存在此缓存行的拷贝
+> - I( 无效, Invalid ): 缓存行失效, 不能使用
+>
+> 此时, 基于硬件的四种操作构成一个状态图 
+> ![MESI状态转移](../images/MESI状态转移.png)
+> 
+> 其转移的方式源于两种方式的共同作用:
+> - 处理器请求(Processor Requests)
+>     - PrRd: 处理器请求读取一块缓存
+>     - PrWr: 处理器请求写入一块缓存
+> - 总线请求(Bus Requests)
+>     - BusRd: 存在一个来自另一个处理器对于一个缓存块的读取请求
+>     - BusRdX: 存在一个来自另一个处理器(该处理器没有该缓存块)对于一个缓存块的读取请求
+>     - BusUpgr: 存在一个来自另一个处理器对于一个缓存块的写入请求, 该处理器已经持有该缓存块
+>     - Flush: 存在另一个处理器的整个缓存块被写回主存
+>     - FlushOpt: 整个缓存块会通过总线发送出去, 以供另一处理器使用(即"缓存到缓存"数据传输)
+
+
 
 # 常见的操作线程安全性
 ## new, delete
