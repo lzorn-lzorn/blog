@@ -320,5 +320,16 @@ struct holder : placeholder {
     T value;
 };
 ```
-原因有如下: 这样实现很难做 SBO(Small Buffer) 优化. 因为虚表的实际内存不能被紧凑的塞入小缓冲区中. 这样 gcc 的实现中 `std::any` 只存有一个 函数指针 和 一个实际的 val.
+原因有如下: 这样实现很难做 SBO(Small Buffer) 优化. 因为虚表的实际内存不能被紧凑的塞入小缓冲区中. 
 
+但是你可以手动存储对应的函数指针, 相当于手动实现这个 VTable, 这样其内存布局也是可控的. 例如
+```Cpp
+using _Destroy_fn = void (void*) noexcept;
+using _Copy_fn = void (void*, const void*);
+using _Move_fn = void (void*, void*) noexcept;
+
+_Destroy_fn* _Destroy; 
+_Copy_fn* _Copy;
+_Move_fn* _Move;
+```
+实际上 MSVC 就是如此实现的, 但是这样会导致一个 `std::any` 对象的 sizeof 有 64 Bytes. 而由于 gcc 将这些函数全部通过 `_Op` 压缩为一个函数 (内部有 switch 派发), gcc 实现的 `std::any` 只有 16 Bytes.
