@@ -12,6 +12,9 @@ import os
 from datetime import datetime
 
 
+HEXO_CMD = ['npx', '--no-install', 'hexo']
+
+
 def run_command(command, description):
     """
     执行命令并实时输出结果
@@ -92,6 +95,28 @@ def get_commit_message():
     return message
 
 
+def check_command(command):
+    """
+    检查命令是否可用
+
+    Args:
+        command: 命令名
+
+    Returns:
+        bool: 命令是否存在
+    """
+    try:
+        subprocess.run(
+            [command, '--version'],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=True
+        )
+        return True
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return False
+
+
 def check_git_status():
     """
     检查 Git 状态，确认是否有文件需要提交
@@ -131,6 +156,14 @@ def main():
     script_dir = os.path.dirname(os.path.abspath(__file__))
     os.chdir(script_dir)
     print(f"\n 工作目录: {script_dir}")
+
+    if not check_command('git'):
+        print("\n❌ 未找到 git，请先安装并确认它在 PATH 中")
+        sys.exit(1)
+
+    if not check_command('npx'):
+        print("\n❌ 未找到 npx，请先安装 Node.js/npm")
+        sys.exit(1)
     
     # 步骤 1: Hexo 清理 不清理(太慢)
     # if not run_command("hexo clean", "清理 Hexo 缓存"):
@@ -139,12 +172,12 @@ def main():
     #         sys.exit(1)
     
     # 步骤 2: Hexo 生成
-    if not run_command("hexo generate", "生成静态文件"):
+    if not run_command(HEXO_CMD + ['generate'], "生成静态文件"):
         print("\n❌ 生成失败，部署终止")
         sys.exit(1)
     
     # 步骤 3: Hexo 部署
-    if not run_command("hexo deploy", "部署到 GitHub Pages"):
+    if not run_command(HEXO_CMD + ['deploy'], "部署到 GitHub Pages"):
         print("\n❌ 部署失败，Git 提交终止")
         sys.exit(1)
     
