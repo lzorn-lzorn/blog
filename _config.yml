@@ -106,6 +106,24 @@ ignore:
 ## Themes: https://hexo.io/themes/
 theme: kira
 
+# # Math rendering (hexo-filter-mathjax)
+# mathjax:
+#   tags: ams
+#   single_dollars: true
+#   cjk_width: 0.9
+#   normal_width: 0.6
+#   append_css: true
+#   every_page: true
+#   packages:
+#     - ams
+
+# _config.yml
+pandoc:
+  args:
+    - '--mathjax'
+    - '--no-highlight'   # 可选，按需保留
+
+
 # Deployment
 ## Docs: https://hexo.io/docs/one-command-deployment
 deploy:
@@ -115,3 +133,5 @@ deploy:
 
 aplayer:
   asset_inject: false # 禁止 aplayer 注入资源
+
+

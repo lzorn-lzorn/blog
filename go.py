@@ -14,48 +14,36 @@ from datetime import datetime
 
 HEXO_CMD = ['npx', '--no-install', 'hexo']
 
-
 def run_command(command, description):
-    """
-    执行命令并实时输出结果
-    
-    Args:
-        command: 要执行的命令（字符串或列表）
-        description: 命令描述
-    
-    Returns:
-        bool: 命令是否执行成功
-    """
     print(f"\n{'='*60}")
     print(f"{description}")
     print(f"{'='*60}")
     
     try:
-        # 如果是字符串，在 shell 中执行
         if isinstance(command, str):
             process = subprocess.Popen(
                 command,
                 shell=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
-                universal_newlines=True,
+                encoding='utf-8',      
+                errors='replace',      
                 bufsize=1
             )
         else:
-            # 如果是列表，直接执行
             process = subprocess.Popen(
-                command,
+                ' '.join(command),
+                shell=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
-                universal_newlines=True,
+                encoding='utf-8',      
+                errors='replace',      
                 bufsize=1
             )
         
-        # 实时输出
         for line in process.stdout:
             print(line, end='')
         
-        # 等待进程结束
         process.wait()
         
         if process.returncode == 0:
@@ -68,8 +56,8 @@ def run_command(command, description):
     except Exception as e:
         print(f"执行出错: {str(e)}")
         return False
-
-
+    
+    
 def get_commit_message():
     """
     获取用户输入的提交信息，如果为空则使用默认信息
@@ -161,8 +149,8 @@ def main():
         print("\n❌ 未找到 git，请先安装并确认它在 PATH 中")
         sys.exit(1)
 
-    if not check_command('npx'):
-        print("\n❌ 未找到 npx，请先安装 Node.js/npm")
+    if not check_command('node'):
+        print("\n❌ 未找到 node，请先安装 Node.js")
         sys.exit(1)
     
     # 步骤 1: Hexo 清理 不清理(太慢)
@@ -184,6 +172,8 @@ def main():
     print("\n" + "="*60)
     print("✅ Hexo 部署完成！")
     print("="*60)
+    
+    run_command("git config core.autocrlf true", "设置 Git 换行符策略")
     
     # 步骤 4: 检查 Git 状态
     if not check_git_status():

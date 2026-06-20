@@ -143,3 +143,7 @@ friends:
 
 # 可复制的代码块
 copyableCodeblock: true
+
+math:
+  enable: true
+  engine: mathjax   # 或 katex
