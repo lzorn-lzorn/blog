@@ -5,7 +5,7 @@ tags:
   - C++
 categories:
   - C++
-cover: /lib/background/bg13.jpeg
+cover: /lib/background/bg14.jpg
 ---
 
 <!-- toc -->
@@ -71,7 +71,7 @@ private:
 - `notify_one()` / `notify_all()`: 通知 {任意一个}/ {所有} 等待线程结束等待
 
 
-> [!note] Atomic 的无锁实现 ^atomic-and-lockfree
+> Atomic 的无锁实现
 > C++ 标准规定: 除了 std::atomic_flag 以外, 所有的原子类型都不保证一定是互斥体实现还是使用 CPU 原子指令, 所以可以使用 [`atomic<T>::is_lock_free`](https://en.cppreference.com/w/cpp/atomic/atomic/is_lock_free.html) 来查看, 如果返回 `true` 则是使用了原子指令.
 > 实际上, 对于基本类型的原子类型而言, 其都是使用 CPU 的原子指令而不是互斥体实现.
 > 对于自定义类型, 这主要取决于自定义类型首先要满足内存对齐为默认的对齐方式, 以及内存占用要是有2 的幂次, 同时查看当前 CPU 支持多少位原子操作, 才能确定其是否能调用 CPU 的原子指令
@@ -145,9 +145,11 @@ private:
 ```
 只是使用对应 CPU 提供的原子指令完成
 
-> [!note] CAS 操作 ^cas
+> CAS 操作
 > [知乎: 理解 C++无锁编程 compare_exchange_weak](https://zhuanlan.zhihu.com/p/1980446889984946486)
+> 
 > [Cppref: compare_exchange](https://en.cppreference.com/w/cpp/atomic/atomic/compare_exchange)
+> 
 > `bool compare_exchange_weak(T& expected, T desired, memory_order success, memory_order failure); `
 > `bool compare_exchange_weak(T& expected, T desired, memory_order order = memory_order_seq_cst); `
 > 其参数含义如下:
@@ -157,6 +159,7 @@ private:
 > - `failure`: 指定在比较失败时使用的内存顺序
 > 
 > strong‌‌ 和 weak 的不同在于, weak 可能出现伪失败(spurious failure), 即原子变量的当前值与期望值相等, 操作也会失败, 通常是为了在某些硬件平台上实现更高的性能. 由于 `compare_exchange_weak` 的伪失败特性, 它通常需要在循环中使用, 直到操作成功为止
+> 
 > ```cpp
 > T old_val = expected;
 > while (!atomic_var.compare_exchange_weak(old_val, desired, std::memory_order_release, std::memory_order_relaxed)) {
