@@ -7,6 +7,7 @@ Hexo 博客自动部署脚本
 """
 
 import argparse
+import shlex
 import subprocess
 import sys
 import os
@@ -33,7 +34,7 @@ def run_command(command, description):
             )
         else:
             process = subprocess.Popen(
-                ' '.join(command),
+                shlex.join(command),
                 shell=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
