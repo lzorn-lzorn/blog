@@ -6,6 +6,7 @@ Hexo 博客自动部署脚本
 功能：清理 -> 生成 -> 部署 Hexo，并提交源代码到 Git
 """
 
+import argparse
 import subprocess
 import sys
 import os
@@ -58,29 +59,21 @@ def run_command(command, description):
         return False
     
     
-def get_commit_message():
+def parse_args():
     """
-    获取用户输入的提交信息，如果为空则使用默认信息
+    解析命令行参数
     
     Returns:
-        str: 提交信息
+        argparse.Namespace: 解析后的参数
     """
-    print("\n" + "="*60)
-    print("> 请输入 Git 提交信息 (直接回车使用默认信息):")
-    print("="*60)
-    
-    try:
-        message = input("提交信息: ").strip()
-    except KeyboardInterrupt:
-        print("\n\n⚠️  用户取消操作")
-        sys.exit(0)
-    
-    if not message:
-        # 使用默认提交信息（包含时间戳）
-        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        message = f"更新博客内容 - {now}"
-    
-    return message
+    parser = argparse.ArgumentParser(description="Hexo 博客自动部署脚本")
+    parser.add_argument(
+        '-m', '--message',
+        type=str,
+        default=None,
+        help='Git 提交信息（默认使用当前时间字符串）'
+    )
+    return parser.parse_args()
 
 
 def check_command(command):
@@ -136,6 +129,8 @@ def check_git_status():
 
 def main():
     """主函数"""
+    args = parse_args()
+    
     print("\n" + "🌟"*30)
     print("     Hexo 博客自动部署脚本")
     print("🌟"*30)
@@ -181,7 +176,7 @@ def main():
         return
     
     # 步骤 5: Git 提交
-    commit_message = get_commit_message()
+    commit_message = args.message or datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
     # Git add
     if not run_command("git add .", "添加所有改动到暂存区"):
