@@ -5,6 +5,7 @@ db.json
 node_modules/
 public/
 .deploy*/
+.npm-cache/
 _multiconfig.yml
 
 # Obsidian 配置（不需要提交）

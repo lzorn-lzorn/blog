@@ -153,11 +153,10 @@ def main():
         print("\n❌ 未找到 node，请先安装 Node.js")
         sys.exit(1)
     
-    # 步骤 1: Hexo 清理 不清理(太慢)
-    # if not run_command("hexo clean", "清理 Hexo 缓存"):
-    #     print("\n⚠️  清理失败，是否继续？(y/n): ", end='')
-    #     if input().lower() != 'y':
-    #         sys.exit(1)
+    # 步骤 1: Hexo 清理
+    if not run_command(HEXO_CMD + ['clean'], "清理 Hexo 缓存"):
+        print("\n❌ 清理失败，部署终止")
+        sys.exit(1)
     
     # 步骤 2: Hexo 生成
     if not run_command(HEXO_CMD + ['generate'], "生成静态文件"):
