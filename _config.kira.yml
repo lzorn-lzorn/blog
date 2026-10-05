@@ -110,15 +110,15 @@ gitalk:
 # 你们不要在这里填我的 giscus 配置项，不然你们博客下的评论会全部跑到我的仓库下面……
 # https://giscus.app/zh-CN 可以在这个网站上手动选择配置填到下方对应位置
 giscus:
-    active: false # 是否启用 giscus；设置为 false 可避免 "giscus is not installed" 错误
-    repo: -your github username-/-your giscus repo- # 存放评论的 discus 所在的 repo
-    repoID: -your giscus repo ID- # GitHub repo ID
+    active: true # 启用 giscus 评论
+    repo: lzorn-lzorn/blog # 存放评论的仓库
+    repoID: R_kgDOQh3wRw
     category: Announcements # 选择新 discussions 所在的分类
-    categoryID: -giscus category id- # 分类 ID
+    categoryID: DIC_kwDOQh3wR84DHFJj
     mapping: pathname # pathname, url, title, og:title, specific, number
     # term: # abc 123 # specific | number
-    theme: light
-    lang: en
+    theme: preferred_color_scheme
+    lang: zh-CN
 
 copyright: '<strong>版权声明：</strong>本文采用 <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/cn/deed.zh" target="_blank">CC BY-NC-SA 3.0 CN</a> 协议进行许可'
 copyTip: "著作权归作者所有。\n商业转载请联系作者获得授权，非商业转载请注明出处。\n来源：%url" # 自定义复制版权文案,使用 %url 代替当前页面URL, 修改为false禁用
