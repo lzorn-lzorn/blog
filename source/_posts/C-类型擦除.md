@@ -5,7 +5,7 @@ tags:
   - C++
 categories:
   - C++
-cover: /lib/background/bg14.jpg
+cover: /lib/background/p5/3.jpg
 ---
 # C 语言时代的类型擦除
 在C语言时代, 类型擦除主要是使用 `void *`. 因为在C语言时代, `void *` 是一个万能口袋, 所有的指针都可以转换为 `void *`, 但是一旦转换为  `void *` 原本的类型是找不回来的. 

@@ -4,7 +4,7 @@ date: 2025-12-03 22:38:51
 tags:
 categories:
   - Hexo
-cover: /lib/background/bg2.jpg
+cover: /lib/background/p5/4.jpg
 ---
 
 <!-- toc -->

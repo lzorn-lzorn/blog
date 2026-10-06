@@ -1,7 +1,12 @@
 ---
 title: UE-Input System
 date: 2026-02-24 21:00:31
-tags:
+tags: 
+  - UE
+  - C++
+categories:
+  - UE
+cover: /lib/background/p5/5.jpg
 ---
 # UE的输入处理流程
 在引擎初始化的时候会初始化其UI系统: Slate, 具体来说: 当玩家通过设备输入某个"键位"的时候, 这个按键首先会被对应操作系统捕获, 例如: `FWindowsApplication` 下的 Window API; `FLinuxApplication` 下的 SDL. 通过这些平台将输入信号传导至 `FSlateApplication` 中的形如 OnXXX 的信号处理函数中, 从而被 Slate 捕获. 然后 Slate 尝试处理这些输入信号(详情见: [[Slate{0}-UI设计的机制#UE的UI框架-Slate]]), 如果 Slate 无法处理这些信号, 这些信号则会穿透 Slate 系统, 进入 PlayerController 中. 进入 `APlayerController::InputKey` (或者 `InputAxis`, 但是还是会调用到 `InputKey` ), 所以如果想模拟虚拟输入只要手动调用 `APlayerController::InputKey` 即可.

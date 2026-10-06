@@ -5,7 +5,7 @@ tags:
   - C++
 categories:
   - C++
-cover: /lib/background/bg14.jpg
+cover: /lib/background/p5/3.jpg
 ---
 # new 和 delete
 

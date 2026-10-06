@@ -137,7 +137,6 @@ def fail_exit(description):
     修复问题后重新运行 `python3 go.py` 即可覆盖之前的结果。
     """
     print(f"\n❌ {description}")
-    print("💡 部署是幂等的：修复问题后直接重新运行 `python3 go.py` 即可覆盖，无需回滚。")
     sys.exit(1)
 
 
