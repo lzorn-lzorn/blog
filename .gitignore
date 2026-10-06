@@ -10,3 +10,6 @@ _multiconfig.yml
 
 # Obsidian 配置（不需要提交）
 source/.obsidian/
+# 图片压缩备份与临时目录
+backup_images/
+.sipstest/
