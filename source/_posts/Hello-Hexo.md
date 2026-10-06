@@ -7,7 +7,6 @@ categories:
 cover: /lib/background/p5/4.jpg
 ---
 
-<!-- toc -->
 
 # Hello Hexo
 Hexo 是基于 node.js 的个人博客框架:
@@ -121,7 +120,6 @@ hexo new post "blog_name"
 ```
 即可
 
-如果你想给你的博客添加目录: 在文章的最开始添加 `<!-- toc -->` 即可自动生成目录.
 
 为了方便, 你可以写一个脚本来帮你进行 
 ```Bash

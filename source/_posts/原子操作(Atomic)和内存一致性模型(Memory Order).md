@@ -8,7 +8,6 @@ categories:
 cover: /lib/background/p5/3.jpg
 ---
 
-<!-- toc -->
 
 # Atomic
 [Double-Checked Locking 的正确性](https://preshing.com/20130929/double-checked-locking-is-fixed-in-cpp11/)

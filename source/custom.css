@@ -752,3 +752,107 @@ figure.highlight pre.hljs {
 		font-size: 14px !important;
 	}
 }
+
+/* ===== 右侧文章目录 (TOC) ===== */
+
+/* 有目录时加宽右侧栏 */
+.kira-right-column.has-toc {
+	width: 250px;
+	align-items: flex-start;
+	padding: 0 8px 0 4px;
+	box-sizing: border-box;
+}
+
+/* 目录容器 */
+.kira-right-toc {
+	position: sticky;
+	top: 24px;
+	width: 100%;
+	max-height: calc(100vh - 70px);
+	overflow-y: auto;
+	pointer-events: all;
+	font-size: 13px;
+	line-height: 1.8;
+	padding: 14px 16px;
+	border-radius: 12px;
+	background: rgba(255, 255, 255, 0.72);
+	backdrop-filter: blur(8px);
+	-webkit-backdrop-filter: blur(8px);
+	border: 1px solid rgba(49, 174, 255, 0.12);
+	box-sizing: border-box;
+}
+
+/* 目录标题 */
+.kira-right-toc-title {
+	font-weight: 700;
+	font-size: 14px;
+	margin-bottom: 10px;
+	padding-bottom: 8px;
+	border-bottom: 1px dashed rgba(49, 174, 255, 0.3);
+	color: #333;
+}
+
+/* 目录列表 */
+.kira-right-toc-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.kira-right-toc-list li {
+	margin: 0;
+}
+
+.kira-right-toc-list li.toc-level-1 {
+	padding-left: 0;
+}
+
+.kira-right-toc-list li.toc-level-2 {
+	padding-left: 14px;
+}
+
+.kira-right-toc-list li.toc-level-3 {
+	padding-left: 28px;
+}
+
+.kira-right-toc-list a {
+	display: block;
+	color: #666;
+	text-decoration: none;
+	padding: 4px 8px;
+	border-radius: 6px;
+	transition: all 0.2s ease;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.kira-right-toc-list a:hover {
+	color: #31aeff;
+	background: rgba(49, 174, 255, 0.08);
+}
+
+/* 中等屏幕：目录变窄 */
+@media (max-width: 1400px) {
+	.kira-right-column.has-toc {
+		width: 210px;
+	}
+}
+
+/* 窄屏：隐藏目录，只保留回到顶部按钮 */
+@media (max-width: 1180px) {
+	.kira-right-column.has-toc {
+		width: 80px;
+		padding: 0;
+		align-items: center;
+	}
+
+	.kira-right-toc {
+		display: none;
+	}
+}
+
+/* 目录锚点平滑滚动 */
+html {
+	scroll-behavior: smooth;
+}

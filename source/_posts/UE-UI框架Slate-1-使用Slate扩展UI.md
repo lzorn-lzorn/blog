@@ -9,7 +9,6 @@ categories:
 cover: /lib/background/p5/5.jpg
 ---
 
-<!-- toc -->
 # 使用Slate
 Slate 本质上是一个UI框架, 所以你可以基于 Slate 扩展蓝图工具, 亦或者基于 Slate 创建自己的 UMG 控件.
 在 Slate 中提供了了对用户界面命令元数据的抽象: UI Command, 其描述了一个可在 UI 中表现, 可被快捷键触发, 可被菜单/工具栏/快捷键系统绑定的操作, 但它本身不包含执行逻辑. 并提供 命令提供名字, 显示文本, 提示(tooltip), 类型(按钮/切换/复选等)、以及默认快捷键等信息. 实际的执行行为由命令被映射到的 action/delegate(例如通过 `FUICommandList::MapAction` 提供的 `Execute/CanExecute/IsChecked` 委托)来实现
