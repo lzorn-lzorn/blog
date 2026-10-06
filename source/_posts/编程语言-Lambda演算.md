@@ -7,7 +7,7 @@ tags:
   - 数学
 categories:
   - 编程语言
-cover: /lib/background/p5/1.jpeg
+cover: /lib/background/p5/1.jpg
 mathjax: true
 ---
 
