@@ -1,8 +1,9 @@
 ---
-title: C++内存分配器
+title: C++内存分配器{1}-标准
 date: 2026-06-26 22:58:12
 tags:
   - C++
+  - 内存分配器
 categories:
   - C++
 cover: /lib/background/p5/3.jpg
@@ -10,22 +11,22 @@ cover: /lib/background/p5/3.jpg
 # new 和 delete
 
 ## new 
-new operator 是C++的保留关键字，当其成功调用时会调用两个函数：`operator new()` 和 `placement new()` [tips] 这两个函数是可以重载的.
+new operator 是C++的保留关键字, 当其成功调用时会调用两个函数：`operator new()` 和 `placement new()` [tips] 这两个函数是可以重载的.
 ```cpp
 string * sp = new string("hello");
 ```
 等价于：
 ```cpp
-// 申请原始空间，类似于malloc
+// 申请原始空间, 类似于malloc
 woid * raw = operator new(strlen("hello"));
-// 通过 placement new调用string类构造函数，初始化申请空间
+// 通过 placement new调用string类构造函数, 初始化申请空间
 new (raw) string("hello");
 // 返回对象指针
 string * sp = static_cast<string *>(raw);
 ```
-new 这个关键字底层仍然是malloc，区别于malloc的是：new会调用相应的构造函数，虽然我们经常这么说。实际上 new 是由两个步骤的:
+new 这个关键字底层仍然是malloc, 区别于malloc的是：new会调用相应的构造函数, 虽然我们经常这么说。实际上 new 是由两个步骤的:
 
-1. 调用 `operator new()` / `operator new[]()` 分配内存，这部分相当于malloc
+1. 调用 `operator new()` / `operator new[]()` 分配内存, 这部分相当于malloc
 2. 调用对应的构造函数
 
 > 对齐内存分配
@@ -36,8 +37,8 @@ new 这个关键字底层仍然是malloc，区别于malloc的是：new会调用�
 > ```
 
 ## operator new()
-new 这个关键字之所以可以发挥作用, 主要是调用了 operator new() 这个函数，所以可以用过重载 `operator new()` 来改变其行为
-`operator new()` 用于申请 Heap 空间，功能类似于 C 的 malloc, 尝试从堆上获取一段内存空间，如果成功则直接返回，如果失败则转去调用 new handler，然后抛出一个 `bad_alloc` 异常
+new 这个关键字之所以可以发挥作用, 主要是调用了 operator new() 这个函数, 所以可以用过重载 `operator new()` 来改变其行为
+`operator new()` 用于申请 Heap 空间, 功能类似于 C 的 malloc, 尝试从堆上获取一段内存空间, 如果成功则直接返回, 如果失败则转去调用 new handler, 然后抛出一个 `bad_alloc` 异常
 其函数原型是：
 ```cpp
 void* operator new(std::size_t size) throw (std::bad::alloc);
@@ -85,7 +86,7 @@ void* operator new(szie_t size) throw (std::bad_alloc){
 >      // 重载类专属 operator new 
 >      static void* operator new(size_t size) { 
 >          void* ptr; 
->          // 循环分配，使用本类handler 
+>          // 循环分配, 使用本类handler 
 >          while ((ptr = ::operator new(size, std::nothrow)) == nullptr) { 
 >              if (class_handler == nullptr) throw std::bad_alloc(); 
 >              
@@ -116,9 +117,9 @@ void* operator new(szie_t size) throw (std::bad_alloc){
 >  但实际上, new_hander 其实很难出发, 因为操作系统往往会做出超量分配承诺, 因为操作系统内部是会维护虚拟内存的, 同时多个进程都在时时刻刻分配和释放, 所以系统即便内存也会给应用程序承诺会分配, 因为可能未来不久就会有新的内存被释放. 同时即便操作系统承诺分配内存, 真正的内存也不会马上分配, 而是在真正被用到时才会分配. 
 > 
 ## placement new()
-一般来说，使用new申请空间时，是从系统的"堆"(heap)中分配空间。申请所得的空间的位置时根据当时的内存的实际使用情况决定的。但是, 在某些特殊情况下，可能需要在程序员指定的特定内存创建对象，这就是所谓的"定位放置new"(placement new)操作。
+一般来说, 使用new申请空间时, 是从系统的"堆"(heap)中分配空间。申请所得的空间的位置时根据当时的内存的实际使用情况决定的。但是, 在某些特殊情况下, 可能需要在程序员指定的特定内存创建对象, 这就是所谓的"定位放置new"(placement new)操作。
 
-定位放置new操作的语法形式不同于普通的new操作。例如，一般都用如下语句 `A* p=new A;` 申请空间，而定位放置new操作则使用如下语句 `A* p=new (ptr) A;` 申请空间，其中ptr就是程序员指定的内存首地址.
+定位放置new操作的语法形式不同于普通的new操作。例如, 一般都用如下语句 `A* p=new A;` 申请空间, 而定位放置new操作则使用如下语句 `A* p=new (ptr) A;` 申请空间, 其中ptr就是程序员指定的内存首地址.
 
 ```cpp
 int *p=(int*)malloc(sizeof(int)*10);
@@ -126,9 +127,9 @@ int *p0 = new(p)int(10);//表示将10放在p的空间的第一位
 ```
 [注意]
 
-1. 用定位放置new操作，既可以在栈(stack)上生成对象，也可以在堆（heap）上生成对象。
-2. 使用语句 `A* p=new (mem) A;` 定位生成对象时，指针p和数组名 mem 指向同一片存储区。所以，与其说定位放置 new 操作是申请空间，还不如说是利用已经请好的空间，真正的申请空间的工作是在此之前完成的
-3. 使用语句 `A * p=new (mem) A;` 定位生成对象是，会自动调用类A的构造函数，但是由于对象的空间不会自动释放（对象实际上是借用别人的空间），所以必须显示的调用类的析构函数，如本例中的 `p->~A()`.
+1. 用定位放置new操作, 既可以在栈(stack)上生成对象, 也可以在堆（heap）上生成对象。
+2. 使用语句 `A* p=new (mem) A;` 定位生成对象时, 指针p和数组名 mem 指向同一片存储区。所以, 与其说定位放置 new 操作是申请空间, 还不如说是利用已经请好的空间, 真正的申请空间的工作是在此之前完成的
+3. 使用语句 `A * p=new (mem) A;` 定位生成对象是, 会自动调用类A的构造函数, 但是由于对象的空间不会自动释放（对象实际上是借用别人的空间）, 所以必须显示的调用类的析构函数, 如本例中的 `p->~A()`.
 4. 
 ```cpp
 void * operator new(size_t, void *location){ 
@@ -136,22 +137,22 @@ void * operator new(size_t, void *location){
 }
 ```
 
-它也是new操作符的一个使用方法，须要使用一个额外的变量（buffer）。当new操作符隐含调用operator new函数时。把这个变量传递给它。被调用的operator new函数除了带有强制的參数size_t外，还必须接受void* 指针參数。指向构造对象占用的内存空间。如果要将一个元素放在其他下标位置中，可以重载new
+它也是new操作符的一个使用方法, 须要使用一个额外的变量（buffer）。当new操作符隐含调用operator new函数时。把这个变量传递给它。被调用的operator new函数除了带有强制的參数size_t外, 还必须接受void* 指针參数。指向构造对象占用的内存空间。如果要将一个元素放在其他下标位置中, 可以重载new
 
 ```cpp
 void* operator new(size_t sz,void *ptr,int pos){
-//第1个参数必须但不需要传递，由new自动计算的，第2个参数传递void*指针，第3个参数传递位置
+//第1个参数必须但不需要传递, 由new自动计算的, 第2个参数传递void*指针, 第3个参数传递位置
     return &ptr[pos];
 }
 new(p,3)int(10);    //将10放在下标为3的空间中
 ```
-[ 注意 ]：`operator new()` 和 `operator new[]()` 都是不负责初始化得到的内存的，所有这部分要取决于具体编译器的实现.
+[ 注意 ]：`operator new()` 和 `operator new[]()` 都是不负责初始化得到的内存的, 所有这部分要取决于具体编译器的实现.
 在 C++17 之后 placement new 被封装为 `std::construct_at`
 
 ## delete
 对于每一个 `new` 都有一个对应的 `delete` 来进行释放..
-你需要做到 每一种new和delete对应，`new[]` 和 `delete[]` 对应，构造和析构的new delete要对应。但是这些都不是我们所提倡的做法，我们现在更加提倡的是使用智能指针，也就是应该RAII思想。
-对应于operator new()，delete关键字也同理于new:
+你需要做到 每一种new和delete对应, `new[]` 和 `delete[]` 对应, 构造和析构的new delete要对应。但是这些都不是我们所提倡的做法, 我们现在更加提倡的是使用智能指针, 也就是应该RAII思想。
+对应于operator new(), delete关键字也同理于new:
 1. 会在调用解构函数
 2. 调用 `operator delete()` / `operator delete[]() ()`
 所以可以通过重写 `operator delete()` 来改变delete的行为
@@ -246,7 +247,7 @@ struct list {
 
 ```Cpp
 template<typename T, size_t PoolSize> struct FixedAlloc { 
-    char pool[PoolSize]; // 手动自定义rebind，保留第二个模板参数 
+    char pool[PoolSize]; // 手动自定义rebind, 保留第二个模板参数 
     template<typename U> struct rebind { 
         using other = FixedAlloc<U, PoolSize>; 
     }; 
@@ -257,24 +258,24 @@ template<typename T, size_t PoolSize> struct FixedAlloc {
 
 ## propagate 传播规则
 
-![propagation](/images/propagation in C++.excalidraw.png)
+![propagation](/images/propagation in C++.png)
 所谓标准库的传播规则, 即如果一个容器内部保存了某个分配器对象时, 当这个对象被拷贝, 移动, 交换时, 改分配器应该采取何种行为.
 `propagate_on_container_copy_assignment`: 控制拷贝赋值后, `dst` 是否可以接管 `src` 的分配器.
 当其为 `true_type` 时,
 
 1. 用 `dst` 旧分配器释放自身原有所有内存
-2. 将 `src` 的分配器完整拷贝一份，赋值给 `dst` 的分配器
-3. 使用新拷贝过来的分配器，重新分配内存并拷贝 `src` 全部元素
+2. 将 `src` 的分配器完整拷贝一份, 赋值给 `dst` 的分配器
+3. 使用新拷贝过来的分配器, 重新分配内存并拷贝 `src` 全部元素
 
 当其为 `false_type` 时,
 
-1. `dst` 保留自己原本的分配器，不替换
+1. `dst` 保留自己原本的分配器, 不替换
 2. 释放 `dst` 旧内存
 3. 用 `dst` 自身分配器开辟内存, 拷贝 `src` 元素
 
 如果 dst 和 src 的分配器不相等时, 则会全量拷贝. 对于无状态分配器而言无风险, 因为二者等价. 
 
-[`select_on_container_copy_construction`](https://cppreference.com/cpp/memory/allocator_traits/select_on_container_copy_construction) 在拷贝时(拷贝构造时也会触发)会触发该函数, 其是属于 `allocator_traits` 下的静态成员函数. 当你的分配器没有手动定义这个成员时，`allocator_traits` 提供默认实现:
+[`select_on_container_copy_construction`](https://cppreference.com/cpp/memory/allocator_traits/select_on_container_copy_construction) 在拷贝时(拷贝构造时也会触发)会触发该函数, 其是属于 `allocator_traits` 下的静态成员函数. 当你的分配器没有手动定义这个成员时, `allocator_traits` 提供默认实现:
 
 ```Cpp
 static Alloc select_on_container_copy_construction(const Alloc& src) { 
@@ -288,13 +289,13 @@ static Alloc select_on_container_copy_construction(const Alloc& src) {
 template <typename Ty>
 struct YourAlloc {
     YourAlloc select_on_container_copy_construction(const StatefulAlloc& src) const { 
-        // 策略B：共享源内存池，但重置分配统计计数 
+        // 策略B：共享源内存池, 但重置分配统计计数 
         YourAlloc new_alloc = src; 
         new_alloc.alloc_cnt = 0; 
         return new_alloc; 
-        /* // 策略A：和默认行为一致，完整复制所有状态 
+        /* // 策略A：和默认行为一致, 完整复制所有状态 
             return src; 
-            // 策略C：全新独立内存池，完全隔离 
+            // 策略C：全新独立内存池, 完全隔离 
             YourAlloc separate; separate.pool = std::shared_ptr<char>(new char[4096]);
             return separate; 
         */ 
@@ -310,7 +311,7 @@ template<class Alloc>
 struct allocator_traits { 
     template<class T> static Alloc select_on_container_copy_construction(const Alloc& src) { 
         if constexpr (has_member_select<Alloc>) { 
-            // 分配器自定义了函数，优先调用自定义版本 
+            // 分配器自定义了函数, 优先调用自定义版本 
             return src.select_on_container_copy_construction(src); 
         } else { // 兜底：直接返回源分配器副本 
             return src; 
@@ -378,13 +379,13 @@ int main(){
 ```Cpp
 namespace std::pmr { 
 class memory_resource { 
-public: // 对外公共接口（final，不可重写） 
+public: // 对外公共接口（final, 不可重写） 
     void* allocate(size_t bytes, size_t alignment = alignof(max_align_t)); 
     void deallocate(void* p, size_t bytes, size_t alignment = alignof(max_align_t)); 
     bool is_equal(const memory_resource& other) const noexcept;
     
  protected: 
-     // 虚函数，由子类实现真实内存逻辑 
+     // 虚函数, 由子类实现真实内存逻辑 
      // 分配内存
     virtual void* do_allocate(size_t, size_t) = 0; 
     // 回收内存
@@ -410,13 +411,13 @@ public: // 对外公共接口（final，不可重写）
 
 ```Cpp
 template<class T> class polymorphic_allocator { 
-    memory_resource* mr_; // 仅存内存资源指针，无其他状态 
+    memory_resource* mr_; // 仅存内存资源指针, 无其他状态 
 public: 
     // 构造：绑定一个内存资源 
     polymorphic_allocator(memory_resource* r = get_default_resource()) noexcept; 
-    // rebind 天然支持，转换后共用同一个 mr_ 
+    // rebind 天然支持, 转换后共用同一个 mr_ 
     template<class U> polymorphic_allocator(const polymorphic_allocator<U>& other) noexcept; 
-    // 分配T类型对象，底层调用 mr_->allocate 
+    // 分配T类型对象, 底层调用 mr_->allocate 
     T* allocate(size_t n); 
     void deallocate(T* p, size_t n) noexcept; 
     // 获取绑定的内存资源 

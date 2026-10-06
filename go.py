@@ -128,6 +128,33 @@ def check_git_status():
         return False
 
 
+def check_unpushed_commits():
+    """
+    检查本地是否有已提交但尚未推送的 commit。
+
+    Returns:
+        bool: True 表示有未推送的提交
+    """
+    try:
+        upstream = subprocess.run(
+            ['git', 'rev-parse', '--abbrev-ref', '@{u}'],
+            capture_output=True,
+            text=True,
+        )
+        if upstream.returncode != 0:
+            return False  # 没有上游分支，视为无未推送提交
+
+        ahead = subprocess.run(
+            ['git', 'rev-list', '--count', '@{u}..HEAD'],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        return int(ahead.stdout.strip()) > 0
+    except (subprocess.CalledProcessError, ValueError):
+        return False
+
+
 def fail_exit(description):
     """
     部署步骤失败时退出。
@@ -179,23 +206,30 @@ def main():
 
     run_command("git config core.autocrlf true", "设置 Git 换行符策略")
 
-    # 步骤 4: 检查 Git 状态
-    if not check_git_status():
+    # 步骤 4: 检查 Git 状态（工作区是否有改动）
+    has_changes = check_git_status()
+
+    # 步骤 5: 检查是否有未推送的提交
+    has_unpushed = check_unpushed_commits()
+
+    if not has_changes and not has_unpushed:
         print("\n 所有操作完成！")
         print(f"博客地址: https://lzorn-lzorn.github.io")
         return
 
-    # 步骤 5: Git 提交
     commit_message = args.message or datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    # Git add
-    if not run_command("git add .", "添加所有改动到暂存区"):
-        fail_exit("Git add 失败")
+    if has_changes:
+        # 工作区有改动 → add + commit
+        if not run_command("git add .", "添加所有改动到暂存区"):
+            fail_exit("Git add 失败")
 
-    # Git commit
-    commit_cmd = ['git', 'commit', '-m', commit_message]
-    if not run_command(commit_cmd, f"提交改动: {commit_message}"):
-        fail_exit("Git commit 失败")
+        commit_cmd = ['git', 'commit', '-m', commit_message]
+        if not run_command(commit_cmd, f"提交改动: {commit_message}"):
+            fail_exit("Git commit 失败")
+    else:
+        # 工作区干净但有未推送的提交 → 跳过 commit，直接 push
+        print("\n📌 工作区无改动，但存在未推送的提交，跳过 commit，直接 push")
 
     # Git push
     if not run_command("git push", "推送到远程仓库"):
