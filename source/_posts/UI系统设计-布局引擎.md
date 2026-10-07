@@ -20,78 +20,6 @@ mathjax: true
 
 本笔记聚焦布局阶段最核心, 也最容易出错的一部分: 当父容器尺寸动态变化(窗口缩放, 设备旋转, 分辨率适配)时, 子控件如何跟随变化——这正是锚点(Anchor)与转轴(Pivot)系统要解决的问题.
 
-## 布局引擎的结构
-
-布局引擎围绕一棵**控件树(Widget Tree)**工作: 每个控件是一个节点, 父控件负责确定子控件的位置与尺寸.核心数据结构与接口如下(只摘与布局相关的部分):
-
-```cpp
-// 坐标基础类型
-struct Vector2 { float x, y; };
-struct Size2D  { float w, h; };
-struct Rect    { Vector2 position; Size2D size; };
-
-// 锚点-转轴-偏移 布局参数
-struct LayoutParams {
-    Vector2 anchorMin, anchorMax;  // 双锚点(归一化)
-    Vector2 offsetMin, offsetMax;  // 四边偏移(像素)
-    Vector2 pivot;                 // 转轴(归一化)
-};
-
-// 控件基类(只保留布局接口)
-class Widget {
-    Widget* parent;
-    std::vector<Widget*> children;
-
-    virtual Size2D Measure(const Size2D& available);  // 自底向上: 计算期望尺寸
-    virtual void    Arrange(const Rect& finalRect);   // 自顶向下: 确定最终矩形
-
-    Rect         m_rect;     // 布局结果
-    LayoutParams m_layout;   // 布局参数(锚点/转轴/偏移)
-};
-```
-
-布局流程由这两个虚函数串起来: 父容器先 `Measure` 询问子控件期望尺寸, 再根据子控件的 `LayoutParams` 用 `Arrange` 算出最终矩形——锚点-转轴公式(见下文)正是 `Arrange` 内部的核心计算.
-
-## 布局系统: Flex 与 Grid 布局模型
-
-锚点-转轴解决的是"单个控件如何定位/跟随父容器"; 但"多个子控件如何排列"这个更高层的问题, 由**布局模型(Layout Model)**决定——类似 CSS 的 flexbox 与 grid.它位于锚点-转轴之上: 布局模型先为每个子控件算出目标矩形, 锚点-转轴再据此定位.
-
-```cpp
-// 布局模型接口: 输入父内容区域 + 子控件集合, 输出每个子控件的目标矩形
-class LayoutModel {
-public:
-    virtual void ComputeLayout(
-        const Rect& contentRect,
-        const std::vector<Widget*>& children
-    ) = 0;
-};
-
-// Flex 布局: 一维排列(主轴 + 交叉轴)
-class FlexLayout : public LayoutModel {
-public:
-    enum Direction { Row, Column };
-    enum Justify   { Start, Center, End, SpaceBetween, SpaceAround };
-    enum Align     { Start, Center, End, Stretch };
-
-    Direction direction = Row;
-    Justify   justify   = Start;
-    Align     align     = Stretch;
-    float     gap       = 0;   // 子项间距
-};
-
-// Grid 布局: 二维排列(行轨道 + 列轨道)
-class GridLayout : public LayoutModel {
-public:
-    struct Track { float size; };
-    std::vector<Track> columns;
-    std::vector<Track> rows;
-    float gap = 0;
-};
-```
-
-1. **布局模型(Flex/Grid)** 在 `Arrange` 阶段被调用, 根据布局规则算出每个子控件的目标矩形
-2. **锚点-转轴** 再根据目标矩形 + 锚点参数, 决定子控件在父容器变化时如何跟随/定位
-3. 即: 布局系统是"排布策略", 锚点-转轴是"定位/适配基础", 前者构建在后者之上
 
 锚点系统需要解决的问题是, 假设一个父控件面板尺寸从 $800\times 600$ 变化为 $1200\times 800$ 时, 其子控件应该如何变化.
 
@@ -291,3 +219,100 @@ $$
 - **渲染与命中**共享同一个 $M$，保证视觉与交互一致
 
 Pivot 它不过是**控件内部的一个参考点**, 在定位时决定对齐语义, 在变换时决定不动点. 两者形式不同, 但都源于同一个 $p \in [0,1]^2$
+
+# 布局引擎
+锚点适合 HUD, 覆盖层和固定位置元素，却不擅长处理“按钮随文字变宽”“列表自动排列”“窗口变窄后文本换行”.这些需要布局引擎.
+
+典型布局采用 **Measure 和 Arrange 两阶段**:
+
+1. **Measure**：父控件给孩子约束，孩子返回期望尺寸.例如文本依据字体, 可用宽度和换行规则计算尺寸；容器将孩子尺寸, 间距和内边距组合起来.
+2. **Arrange**：父控件获得最终区域，再为每个孩子分配具体位置和尺寸.孩子通常接受分配，而不是直接把期望尺寸当成最终尺寸.
+
+约束通常包含 `MinSize` 和 `MaxSize`；期望尺寸还会受固定尺寸, 最小尺寸, 最大尺寸等规则影响.测量不是简单的一次“自底向上求和”：父约束向下传递，孩子测量结果再向上返回.
+
+精简的布局接口如下：
+
+```cpp
+class Widget {
+public:
+    struct Constraints {
+        Size2D min;   // 最小尺寸
+        Size2D max;   // 最大尺寸
+    };
+
+    virtual Size2D Measure(const Constraints& c);  // 子返回期望尺寸
+    virtual void   Arrange(const Rect& finalRect); // 父分配最终矩形
+};
+```
+
+例如，垂直列表的期望高度通常为：
+
+$$
+H=\text{PaddingTop}+\sum_i H_i+\text{Spacing}\cdot\max(0,n-1)+\text{PaddingBottom}
+$$
+
+最终空间不足时，布局规则还必须决定：压缩, 溢出, 裁剪，还是交给滚动容器处理.
+
+## 容器与 Slot
+现代布局通常把规则放到父容器和 **Slot** 上.Widget 描述自身内容；Slot 描述它在这个父容器中的排列方式.
+
+- `Stack`：横向或纵向排列，支持间距, 对齐和剩余空间分配.
+- `Grid`：按行列排列，支持固定, 内容自适应和比例分配.
+- `Overlay`：孩子共享区域，按顺序叠放.
+- `Canvas`：自由定位，适合锚点, 偏移和绝对位置.
+- `Scroll`：为内容提供可滚动空间，并计算视口与滚动范围.
+
+同一个 TextWidget 放在 Stack 中可以使用“自适应宽度”，放在 Canvas 中可以使用“右上角锚定”.这些通常不是 TextWidget 自身的属性，而是对应 Slot 的属性
+
+精简的 Slot 与容器结构如下：
+
+```cpp
+// Slot: 描述子控件在该父容器中的排列方式(属于父容器, 不属于子控件)
+struct Slot {
+    Size2D    fixedSize;   // 固定尺寸(可选)
+    float     grow = 0;    // 剩余空间分配权重(类似 flex-grow)
+    Alignment align;       // 对齐方式
+    // Grid 下还可有 rowSpan / columnSpan
+};
+
+// Stack: 一维排列
+class StackLayout {
+public:
+    enum Axis { Horizontal, Vertical };
+    enum MainAlign { Start, Center, End, SpaceBetween, SpaceAround };
+
+    Axis      axis      = Vertical;
+    MainAlign mainAlign = Start;      // 主轴对齐
+    Alignment crossAlign = Stretch;   // 交叉轴对齐
+    float     spacing   = 0;          // 间距
+};
+
+// Grid: 二维排列
+class GridLayout {
+public:
+    struct Track {
+        float size;
+        enum Mode { Fixed, Fraction, Auto } mode;  // 固定 / 比例(fr) / 自适应
+    };
+    std::vector<Track> columns;   // 列定义
+    std::vector<Track> rows;      // 行定义
+    float spacing = 0;
+};
+```
+
+可以把锚点理解为 **Canvas 容器的一种 Arrange 策略**.例如 HUD 根部使用 Canvas，把任务面板锚定到右上角；任务面板内部使用垂直 Stack，自动排列文本和按钮.
+
+不要让 Stack 已经计算孩子位置后，再让孩子的锚点覆盖位置.百分比尺寸和内容自适应也容易形成循环依赖：父宽度依赖孩子，孩子宽度又依赖父宽度.引擎必须限制这种组合，或定义明确的解析规则.
+
+## 缓存与失效
+成熟布局系统不会每帧无条件重新测量整棵树，而会区分失效类型：
+
+- 改颜色通常只需要重绘.
+- 改文字, 字体或字号通常需要重新测量，并可能影响祖先尺寸.
+- 改对齐或父区域通常需要重新排列；文本可用宽度改变时也可能需要重新测量.
+- 改纯绘制变换通常不影响布局，但会影响命中测试和可见区域.
+
+裁剪不等于布局，命中测试也不等于绘制：控件可以超出分配区域，而容器另外决定是否裁剪.坐标变换, 绘制顺序和命中顺序需要一致.
+
+父容器通过 Slot 和约束计算孩子区域 -> `measure()` 返回期望尺寸 -> `arrange()` 保存最终几何 -> `paint()` 只消费几何结果.
+`LeafWidget` 负责内容测量，例如文本；`SingleWidget` 适合 Padding, Border 等包装；`MultiWidget` 适合 Stack, Grid, Canvas.`Bounds` 最好逐渐成为排列结果，而非同时兼任布局输入；锚点, 边距和尺寸策略作为输入单独保存.这样布局能够扩展，而不会把规则塞进 Renderer 或 `onPaint()`.
