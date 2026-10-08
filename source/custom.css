@@ -871,3 +871,21 @@ html {
 		line-height: 1.4;
 	}
 }
+
+/* ===== Mermaid 图表 ===== */
+
+.kira-post .mermaid {
+	background: #ffffff;
+	border: 1px solid rgba(0, 0, 0, 0.08);
+	border-radius: 10px;
+	padding: 16px;
+	margin: 16px 0;
+	overflow-x: auto;
+	text-align: center;
+	line-height: 1.6;
+}
+
+.kira-post .mermaid svg {
+	max-width: 100%;
+	height: auto;
+}
