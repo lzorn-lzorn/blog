@@ -11,6 +11,7 @@ Hexo 本地快速预览脚本
 """
 
 import os
+import shutil
 import socket
 import subprocess
 import sys
@@ -18,10 +19,20 @@ import threading
 import time
 import webbrowser
 
-HEXO_CMD = ['npx', '--no-install', 'hexo']
 START_PORT = 4000
 HEARTBEAT_PATH = '__hb__'
-HEARTBEAT_TIMEOUT = 5  # 超过 20 秒无心跳, 认为页面已关闭
+HEARTBEAT_TIMEOUT = 20  # 超过 20 秒无心跳, 认为页面已关闭
+
+
+def resolved_hexo_cmd():
+    """跨平台解析 npx 真实路径。
+
+    Windows 上 npx 是 npx.cmd，直接把 'npx' 放进 subprocess.Popen(列表) 会
+    触发 FileNotFoundError: [WinError 2]（CreateProcess 只自动补 .exe）。
+    这里用 shutil.which 找到真实路径；找不到时回退到 'npx' 交给系统报错。
+    """
+    exe = shutil.which('npx')
+    return [exe if exe else 'npx', '--no-install', 'hexo']
 
 
 def find_free_port(start, limit=200):
@@ -57,7 +68,7 @@ def main():
 
     # --log 让 hexo 打印请求日志, 用于检测心跳
     proc = subprocess.Popen(
-        HEXO_CMD + ['server', '-p', str(port), '--log'],
+        resolved_hexo_cmd() + ['server', '-p', str(port), '--log'],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         encoding='utf-8',
