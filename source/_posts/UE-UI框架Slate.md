@@ -136,7 +136,7 @@ Slate 的输入流可以按**纵向层级**分为四个阶段, 每一个阶段�
 
 [Slate 的事件响应](https://blog.csdn.net/j756915370/article/details/121964442)
 
-![[点击事件响应流程.png]]
+![点击事件响应流程](/source/images/点击事件响应流程.png)
 
 > [!note] 屏幕网格结构 `FHittestGrid`
 > [知乎 UE5 按钮点击的流程](https://zhuanlan.zhihu.com/p/644184563#0)
