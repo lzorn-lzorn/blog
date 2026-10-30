@@ -39,7 +39,7 @@ Slate 中主要负责的是前者, 换句话说, Slate 只是负责处理窗口�
 -> `FSlateApplication::DrawWindows`
 从 `FSlateApplication::DrawWindows` 这个函数开始, 正式进入渲染的流程, 如下图
 
-![UE-UI的渲染入口](/images/UE-UI的渲染入口.png)
+![UE-UI的渲染入口](/source/images/UE-UI的渲染入口.png)
 
 在这里设计到一个概念: <font color="#c0504d">模态窗口(Modal Window)</font>, 这个是一个在UI设计中常用的概念: 其是一种特殊的用户界面元素, 当它被激活时, 会阻止用户与应用程序的其他部分进行交互, 直到用户完成当前操作并关闭该窗口. 也就是强制用户进行完当前操作. 
 
@@ -61,7 +61,7 @@ let modal = new BrowserWindow({
 
 ## 对于渲染的数据操作-快慢路径绘制流程
 对于正在进行渲染数据的处理流程: 如下图
-![渲染单个窗口进行数据操作.png](/images/渲染单个窗口进行数据操作.png)
+![渲染单个窗口进行数据操作.png](/source/images/渲染单个窗口进行数据操作.png)
 这里出现了第二个概念: <font color="#c0504d">快路径渲染和慢路径渲染</font>, 同时需要介绍UE这里的缓存机制: UI 框架为了优化渲染性能, 尽可能减少渲染次数, 在很多时候不会对窗口进行重新绘制, 而是采用缓存中已有的数据进行渲染, 这就是快路径渲染. 而对于缓存实效的情况, 则需要按照正常流程渲染窗口, 子窗口, 以及控件, 也就是慢路径渲染, 所以只有在慢路径渲染的情况下才会去重新调用控件的 `OnPaint()` 方法.
 更详细的来说: 慢路径渲染是一次完整的, 保守的从根到叶的遍历——重新评估布局/可见性/几何, 重建/绘制每个 widget, 更新 hit-test 网格, 并重建或刷新绘制元素缓存(CachedElementData). 它保证在任何结构性或状态变化后画面正确, 但开销大; 而快路径绘制是在没有结构性变化时尽量"重用上帧结果", 只做必要更新(Eg: 几何/变换、剪裁、z 层调整、对少量"最终更新" widget 的重绘、以及同步 hit-test)
 
@@ -107,7 +107,7 @@ enum class EInvalidateWidgetReason : uint8
 `FRHICommandList::RHIBeginDrawingViewport` (GetContext()), 进入真实运行的在当前系统的 RenderDynamicRHI 封装中 ->
 `FRHICommandList::BeginRenderPass` (RHICmdList) ->
 `FSlateRHIRenderingPolicy::DrawElements` (RenderingPolicy) 内部会设置各种和渲染有关的细节(Eg: 顶点着色器, 像素着色器, 纹理, 渲染资源), 其中每一次对 `FRHICommandList::DrawIndexedPrimitive` 的调用就是一次 DrawCall, 具体流程如下:
-![实际的渲染Draw-Call](/images/实际的渲染Draw-Call.png)
+![实际的渲染Draw-Call](/source/images/实际的渲染Draw-Call.png)
 更详细的来说, GPU(同时包括渲染API)只是渲染最基础的各种图元和定点信息和片段信息, 而这些信息会在之前的 SlateApplication 阶段就基本已经处理好, 在 Render 中只是将这些基本的 WindowElement 转化为顶点数据和片段数据(像素数据), 由于UE对各种渲染API的封装, 所以不必关心具体的渲染细节, 例如: 在 Vulkan 中实际上已经没有 VBO, EBO这种结构, 已经被 Vulkan 抽象为一个缓冲区等.
 
 # 窗口的事件响应
@@ -170,7 +170,7 @@ Slate 中基类是 `SWidget`, 继承 `SWidget` 的有另外三个基础类:
 控件树: 在UI设计中, 窗口之间的逻辑关系是一种树关系, 在不同的系统中使用到了不同的方式来组织管理控件树
 `FWidgetPath` 是对于控件树的垂直切片(vertical slice), 是从某一个节点A开始到另一个可达子节点B路径的表示. `FArrangedChildren` 是内部的容器表示, 内部存有 `FArrangedWidget` (保有控件指针 `TSharedRef<SWidget>` 和 位置信息 `FGeometry`)
 
-![FWidgetPath](/images/FWidgetPath.png)
+![FWidgetPath](/source/images/FWidgetPath.png)
 
 # 控件之间的位置关系
 ## UI 扩展点
