@@ -111,21 +111,55 @@ enum class EInvalidateWidgetReason : uint8
 更详细的来说, GPU(同时包括渲染API)只是渲染最基础的各种图元和定点信息和片段信息, 而这些信息会在之前的 SlateApplication 阶段就基本已经处理好, 在 Render 中只是将这些基本的 WindowElement 转化为顶点数据和片段数据(像素数据), 由于UE对各种渲染API的封装, 所以不必关心具体的渲染细节, 例如: 在 Vulkan 中实际上已经没有 VBO, EBO这种结构, 已经被 Vulkan 抽象为一个缓冲区等.
 
 # 窗口的事件响应
-
-## 屏幕网格
-屏幕网格结构 `FHittestGrid`: 其内部有保有 `FCell` (本质上持有一个SWideget的句柄数组 `TArray<int32> WidgetIndexes`) 
-![FHittestGrid示意图](/images/FHittestGrid.png)
-
 ## Slate的事件响应
-Slate 系统的用于处理用户输入的类为 FSlateUser(不仅能处理输入)
-`FSlateUser` 表示一个逻辑上的用户/输入上下文(包含指针位置、捕获、焦点路径、tooltip 状态、drag-drop 状态等), 一个 `FSlateUser` 会管理一个或多个指针索引（鼠标、触摸点等）以及与该用户相关的状态, 手柄会控制光标和指针, 所以插入手柄会增加一个 `FSlateUser`, 但是并不是随便插入一个交互设备就能添加一个 `FSlateUser`. 其主要负责 Cursor (光标):
-- Focus: 聚焦
-- Capture: 捕获
-- DragDrop: 拖动
-- Draw: 绘制
+Slate 的输入流可以按**纵向层级**分为四个阶段, 每一个阶段都有一个明确的"决策点", 来决定事件是否继续向下传递.
+[UE technical-guide](https://dev.epicgames.com/documentation/unreal-engine/commonui-input-technical-guide-for-unreal-engine?application_version=5.3&lang=zh-CN)
+1. 具体的平台(Windows, Linux 桌面管理器, MacOS) 收到一个具体输入事件时, 先传递至其父类 `GenericApplication`, 然后父类传递至 `FSlateApplication`. 每一种信号事件都对应着一个 Process* 例如处理键盘输入时的 `FSlateApplication::ProcessKeyDownEvent(const FKeyEvent& )`. 在 `FSlateApplication` 进入具体 Widget 之前, `FSlateApplication` 会先运行实现 `IInputProcessor` 接口的实现类中的对应的处理函数. 其相当于一个外部拦截点. 如果对应的 Handle* 函数返回 `true` 则表示输入已经被消费, 后续就不会再处理.
+2. 在没有任何外部拦截的情况下, `FSlateApplication` 会构建 `FWidgetPath` 对象(其内部存储了顶层窗口和信号需要走过哪些 Widget). 对于不同类型的输入而言其生成 `FWidgetPath` 的方式也不同. 例如
+    1. 对于鼠标事件, `FWidgetPath` 会通过 `FSlateApplication::LocateWindowUnderMouse` 根据当前光标位置和 Slate 的命中测试网格 Hit Test Grid 来生成, 起点是光标下方最顶层的 Widget. 若该指针已被某个 Widget 捕获(Capture), 则路径起点改为捕获者,命中测试被绕过; 
+    2. 对于键盘事件而言, 则是通过 `FSlateUser::GetFocusPath()` 来生成, 其起点是当前拥有焦点的 Widget, 这条路径在焦点更新时变化, 而不是每次键盘输入重新计算.
+3. 信号消费: 得到 `FWidgetPath` 后, `FSlateApplication` 调用 `RouteAlongFocusPath` 或等价的路径路由函数, 沿路径从最深的 Widget 向根节点依次调用每个 Widget 的 `SWidget::OnKeyDown` 或 `SWidget::OnMouseButtonDown` 每个 Widget 根据自身逻辑返回 `Handled` 或 `Unhandled`. 而 UMG 的 `UUserWidget` 会先交给蓝图层, 蓝图未处理才继续冒泡
+4. 导航消费: 对于方向键, Tab, 手柄摇杆等导航类输入, 如果它们没有被路径上的 Widget 消费, `FSlateApplication` 会交给 `FNavigationConfig` 处理. `FNavigationConfig` 定义了哪些 `FKey` 和模拟轴被解释为导航指令, 以及这些指令映射到哪个 `EUINavigation` 方向. 例如: 导航的目标是移动焦点. `FSlateApplication` 根据当前焦点 Widget 的几何位置, 在可见, 可聚焦的 Widget 中寻找下一个焦点目标. 如果找到, 焦点被转移; 如果没有, 输入最终可能落入游戏世界(取决于输入模式)
+
+> [!note] `FSlateUser`
+> Slate 系统的用于处理用户输入的类为 FSlateUser(不仅能处理输入)
+> `FSlateUser` 表示一个逻辑上的用户/输入上下文(包含指针位置、捕获、焦点路径、tooltip 状态、drag-drop 状态等), 其核心职责围绕 Cursor 展开.
+> 
+> |职责|含义|与输入流的关系|
+> |---|---|---|
+> |Focus|当前焦点挂在哪个 Widget 上|决定阶段二键盘 `FWidgetPath` 的起点|
+> |Capture|哪个指针被哪个 Widget 捕获|决定阶段三鼠标事件的路由起点(捕获优先于命中测试)|
+> |DragDrop|是否处于拖放操作中|使阶段三进入一种特殊路由模式(拖放目标检测)|
+> |Draw|光标/焦点的可视化绘制|输出侧, 不参与输入决策, 但反映状态|
+>
+> `FSlateUser` 的数量由本地玩家(LocalPlayer)的数量决定. 在主机上, 每个手柄通常对应一个独立的本地玩家, 因此各自拥有独立的焦点路径和光标状态; 在 PC 上, 鼠标和键盘共享同一个 `FSlateUser`, 因为它们共享同一条焦点路径
+
 [Slate 的事件响应](https://blog.csdn.net/j756915370/article/details/121964442)
 
-![点击事件响应流程.png](/images/点击事件响应流程.png)
+![[点击事件响应流程.png]]
+
+> [!note] 屏幕网格结构 `FHittestGrid`
+> [知乎 UE5 按钮点击的流程](https://zhuanlan.zhihu.com/p/644184563#0)
+> 本质上是一个空间加速结构, 它的存在是为了解决一个朴素但关键的问题: 当屏幕上有成百上千个控件时, 如何快速判断鼠标的某个坐标"命中了谁", 而不必遍历所有控件逐一比对. `FHittestGrid` 将命中测试的复杂度从 O(N), 其中N 为控件总数, 降低到了接近 O(K), 其中 K 为单个 Cell 内的平均候选数
+> ![FHittestGrid示意图](FHittestGrid.png)
+> 其核心思路是每个 `SWindow` (以及 `SInvalidationPanel`, `SRetainerWidget` 等独立失效根)都拥有自己的 `FHittestGrid`. 这个网格将窗口的二维空间划分为固定大小的单元格(Cell), 默认大小为 128x128 像素
+> 
+> |结构|类型|作用|
+> |---|---|---|
+> | `WidgetArray` | `TArray<FWidgetData>` |存储所有已注册控件的完整信息(几何体, LayerId, 排序权重等)|
+> |`WidgetMap`| `TMap<const SWidget*, int32>` |从控件指针到 `WidgetArray` 索引的快速映射|
+> | `Cells` | `TArray<FCell>` |网格的核心. 每个 `FCell` 包含一个 `TArray<int32> WidgetIndexes`, 存储与该单元格有重叠的所有控件在 `WidgetArray` 中的索引|
+> 
+> 网格每帧都会重建, 并且与 UI 的绘制过程深度耦合. 当 Slate 以深度优先的顺序遍历控件树进行绘制时, 每个 `SWidget::Paint` 会调用 `FHittestGrid::AddWidget` 将自身注册进网格
+> 在 `AddWidget` 中: 
+> 1.计算控件包围盒(BoundingRect)覆盖了哪些 `Cell` 坐标(从左上角到右下角)
+> 2.通过双层循环，将控件在 `WidgetArray` 中的索引, 追加到每一个被覆盖的 `FCell` 的 `WidgetIndexes` 列表中. 这样一来, 一个占据较大区域的控件, 其索引会被多个相邻的 `Cell` 共同持有
+> 
+>  查询路径, 从坐标到生成 `FWidgetPath`, 给定一个屏幕坐标(x, y), 查询如下:
+>  1. 定位 Cell：将坐标除以 Cell 尺寸(128), 得到该点所属的 `Cell` 的行列索引, 从而取出对应的 `FCell` 对象
+>  2. 候选集排序: 取出该 `Cell` 的 `WidgetIndexes` 列表. 这个列表需要被排序，排序的关键是 `LayerId` (控件的渲染/层级 ID), `LayerId` 更大的控件在视觉上更靠前, 应优先被命中
+>  3. 细测与截断: 从后往前(即从 `LayerId` 最大, 最靠前的控件开始)遍历候选列表. 对每个候选控件执行精确的几何包含检测(判断坐标是否真正落在该控件的形状内). 一旦找到第一个包含该坐标的控件, 立即停止遍历, 该控件就是"被命中的最深控件".
+>  4. 回溯路径：以这个最深控件为起点, 沿着它的父控件链向上回溯, 直到窗口根节点, 就得到了完整的 `FWidgetPath`
 
 # 控件之间的逻辑的关系
 Slate 中基类是 `SWidget`, 继承 `SWidget` 的有另外三个基础类:
